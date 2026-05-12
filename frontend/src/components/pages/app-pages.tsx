@@ -231,6 +231,7 @@ function Toolbar({
   createHref,
   createLabel = "Add New",
   templateUrl,
+  onTemplateDownload,
   onPdf,
   onCsv,
   children,
@@ -241,6 +242,7 @@ function Toolbar({
   createHref?: string;
   createLabel?: string;
   templateUrl?: string;
+  onTemplateDownload?: () => void;
   onPdf?: () => void;
   onCsv?: () => void;
   children?: React.ReactNode;
@@ -265,13 +267,20 @@ function Toolbar({
         {children}
       </div>
       <div className="flex flex-wrap gap-2">
-        {templateUrl && canExport && (
-          <Button asChild variant="outline" size="sm">
-            <a href={templateUrl}>
+        {(templateUrl || onTemplateDownload) && canExport && (
+          onTemplateDownload ? (
+            <Button variant="outline" size="sm" onClick={onTemplateDownload}>
               <Download className="mr-2 h-4 w-4" />
               Template
-            </a>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <a href={templateUrl}>
+                <Download className="mr-2 h-4 w-4" />
+                Template
+              </a>
+            </Button>
+          )
         )}
         {onCsv && canExport && (
           <Button variant="outline" size="sm" onClick={onCsv}>
@@ -591,8 +600,8 @@ export function CompaniesPage() {
           <PermissionAction permission="companies.create">
             <Button asChild>
               <Link href="/companies/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Company
+                <Plus className="mr-2 h-4 w-4" />
+                Add Company
               </Link>
             </Button>
           </PermissionAction>
@@ -852,25 +861,41 @@ function FormShell({
     </div>
   );
 }
+function FieldHint({ error, helper }: { error?: string; helper?: string }) {
+  if (!error && !helper) return null;
+  return <p className={`text-xs ${error ? "text-destructive" : "text-muted-foreground"}`}>{error || helper}</p>;
+}
+function RequiredMark({ required }: { required?: boolean }) {
+  return required ? <span className="text-destructive"> *</span> : null;
+}
 function InputField({
   label,
   value,
   onChange,
   type = "text",
+  required,
+  error,
+  helper,
 }: {
   label: string;
   value: any;
   onChange: (v: string) => void;
   type?: string;
+  required?: boolean;
+  error?: string;
+  helper?: string;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label>{label}<RequiredMark required={required} /></Label>
       <Input
         type={type}
         value={value ?? ""}
+        aria-invalid={Boolean(error)}
+        className={error ? "border-destructive focus-visible:ring-destructive" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
+      <FieldHint error={error} helper={helper} />
     </div>
   );
 }
@@ -878,19 +903,31 @@ function NumberField({
   label,
   value,
   onChange,
+  required,
+  error,
+  helper,
+  disabled,
 }: {
   label: string;
   value: any;
   onChange: (v: number) => void;
+  required?: boolean;
+  error?: string;
+  helper?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label>{label}<RequiredMark required={required} /></Label>
       <Input
         type="number"
         value={value ?? 0}
+        disabled={disabled}
+        aria-invalid={Boolean(error)}
+        className={error ? "border-destructive focus-visible:ring-destructive" : undefined}
         onChange={(e) => onChange(Number(e.target.value))}
       />
+      <FieldHint error={error} helper={helper} />
     </div>
   );
 }
@@ -898,18 +935,25 @@ function TextAreaField({
   label,
   value,
   onChange,
+  error,
+  helper,
 }: {
   label: string;
   value: any;
   onChange: (v: string) => void;
+  error?: string;
+  helper?: string;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <Textarea
         value={value ?? ""}
+        aria-invalid={Boolean(error)}
+        className={error ? "border-destructive focus-visible:ring-destructive" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
+      <FieldHint error={error} helper={helper} />
     </div>
   );
 }
@@ -918,17 +962,23 @@ function SelectField({
   value,
   onChange,
   options,
+  required,
+  error,
+  helper,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  required?: boolean;
+  error?: string;
+  helper?: string;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label>{label}<RequiredMark required={required} /></Label>
       <Select value={value || options[0]} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger aria-invalid={Boolean(error)} className={error ? "border-destructive focus-visible:ring-destructive" : undefined}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -939,6 +989,7 @@ function SelectField({
           ))}
         </SelectContent>
       </Select>
+      <FieldHint error={error} helper={helper} />
     </div>
   );
 }
@@ -953,12 +1004,18 @@ function SelectIdField({
   onChange,
   items,
   labelKey = "name",
+  required,
+  error,
+  helper,
 }: {
   label: string;
   value?: string;
   onChange: (v: string) => void;
   items: AnyObj[];
   labelKey?: string;
+  required?: boolean;
+  error?: string;
+  helper?: string;
 }) {
   const [q, setQ] = useState("");
   const filtered = items.filter(
@@ -970,9 +1027,9 @@ function SelectIdField({
   );
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label>{label}<RequiredMark required={required} /></Label>
       <Select value={value || undefined} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger aria-invalid={Boolean(error)} className={error ? "border-destructive focus-visible:ring-destructive" : undefined}>
           <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
         </SelectTrigger>
         <SelectContent>
@@ -996,6 +1053,7 @@ function SelectIdField({
           )}
         </SelectContent>
       </Select>
+      <FieldHint error={error} helper={helper} />
     </div>
   );
 }
@@ -1047,8 +1105,8 @@ export function CategoriesPage() {
           <PermissionAction permission="categories.create">
             <Button asChild>
               <Link href="/categories/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
               </Link>
             </Button>
           </PermissionAction>
@@ -1193,7 +1251,7 @@ export function AssetsPage() {
             search={list.search}
             setSearch={list.setSearch}
             createHref="/assets/create"
-            templateUrl={assetflowService.assetTemplateUrl()}
+            onTemplateDownload={downloadAssetTemplateCsv}
             onCsv={() =>
               downloadFile("/exports/assets.csv", "assetflow-assets.csv")
             }
@@ -1315,6 +1373,7 @@ const initialAsset = () => ({
   purchaseDate: new Date().toISOString().slice(0, 10),
   purchasePrice: 0,
   salvageValue: 0,
+  manualSalvage: false,
   usefulLifeYears: 5,
   depreciationMethod: "Straight Line",
   vendorId: "",
@@ -1324,12 +1383,51 @@ const initialAsset = () => ({
   warrantyExpiry: "",
   notes: "",
 });
+const assetRequiredFields: Array<[string, string]> = [
+  ["companyId", "Company"],
+  ["assetCode", "Asset code"],
+  ["name", "Asset name"],
+  ["categoryId", "Category"],
+  ["brand", "Brand"],
+  ["model", "Model"],
+  ["serialNumber", "Serial number"],
+  ["assetTag", "Asset tag"],
+  ["purchaseDate", "Purchase date"],
+  ["purchasePrice", "Purchase price"],
+  ["usefulLifeYears", "Useful life years"],
+  ["depreciationMethod", "Depreciation method"],
+  ["vendorId", "Vendor"],
+  ["locationId", "Location"],
+  ["condition", "Condition"],
+  ["status", "Status"],
+  ["warrantyExpiry", "Warranty expiry"],
+];
+function autoSalvageValue(purchasePrice: number, condition: string) {
+  const c = String(condition || "").toLowerCase();
+  const rate = c.includes("new") || c.includes("excellent") ? 0.1 : c.includes("good") ? 0.07 : c.includes("fair") ? 0.05 : c.includes("poor") ? 0.02 : 0;
+  return Math.round((Number(purchasePrice || 0) * rate + Number.EPSILON) * 100) / 100;
+}
+function validateAssetRows(rows: AnyObj[]) {
+  const nextErrors: Record<string, string> = {};
+  rows.forEach((row, idx) => {
+    assetRequiredFields.forEach(([key, label]) => {
+      const value = row[key];
+      if (value === undefined || value === null || String(value).trim() === "") nextErrors[`${idx}.${key}`] = `${label} is required`;
+    });
+    if (Number(row.purchasePrice) <= 0) nextErrors[`${idx}.purchasePrice`] = "Purchase price must be greater than 0";
+    if (!Number.isInteger(Number(row.usefulLifeYears)) || Number(row.usefulLifeYears) <= 0) nextErrors[`${idx}.usefulLifeYears`] = "Useful life years must be a positive whole number";
+    if (row.purchaseDate && Number.isNaN(Date.parse(row.purchaseDate))) nextErrors[`${idx}.purchaseDate`] = "Purchase date must be valid";
+    if (row.warrantyExpiry && Number.isNaN(Date.parse(row.warrantyExpiry))) nextErrors[`${idx}.warrantyExpiry`] = "Warranty expiry must be valid";
+  });
+  return nextErrors;
+}
 function AssetFormPage({ id }: { id?: string }) {
   useAuthGuard();
   const router = useRouter();
   const { options } = useOptions();
   const [rows, setRows] = useState<AnyObj[]>([initialAsset()]);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     if (id)
       assetflowService
@@ -1343,6 +1441,7 @@ function AssetFormPage({ id }: { id?: string }) {
               vendorId: r.data.data.vendorId || r.data.data.vendor?.id || "",
               locationId:
                 r.data.data.locationId || r.data.data.location?.id || "",
+              manualSalvage: false,
             },
           ]),
         );
@@ -1365,7 +1464,14 @@ function AssetFormPage({ id }: { id?: string }) {
   ]);
   const update = (idx: number, key: string, value: any) =>
     setRows((prev) =>
-      prev.map((r, i) => (i === idx ? { ...r, [key]: value } : r)),
+      prev.map((r, i) => {
+        if (i !== idx) return r;
+        const next = { ...r, [key]: value };
+        if (!next.manualSalvage && ["purchasePrice", "condition"].includes(key)) {
+          next.salvageValue = autoSalvageValue(Number(next.purchasePrice || 0), next.condition);
+        }
+        return next;
+      }),
     );
   const addRow = () =>
     setRows((prev) => [
@@ -1379,15 +1485,19 @@ function AssetFormPage({ id }: { id?: string }) {
       },
     ]);
   const save = async () => {
+    const errors = validateAssetRows(rows);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      toast.error("Please fill all required asset fields before saving.");
+      return;
+    }
     try {
       setSaving(true);
-      const payload = rows.map((r) => ({
+      const payload = rows.map(({ manualSalvage, ...r }) => ({
         ...r,
         purchasePrice: Number(r.purchasePrice || 0),
         salvageValue: Number(r.salvageValue || 0),
         usefulLifeYears: Number(r.usefulLifeYears || 5),
-        companyId: r.companyId || null,
-        vendorId: r.vendorId || null,
         warrantyExpiry: r.warrantyExpiry || null,
       }));
       if (id) await assetflowService.updateAsset(id, payload[0]);
@@ -1402,11 +1512,12 @@ function AssetFormPage({ id }: { id?: string }) {
       setSaving(false);
     }
   };
+  const errorFor = (idx: number, key: string) => fieldErrors[`${idx}.${key}`];
   return (
     <div className="space-y-6">
       <PageHeader
         title={id ? "Edit Asset" : "Add Assets"}
-        description="Use single or multiple rows. Category dropdown is loaded from backend categories table."
+        description="All asset lifecycle and finance fields are required except notes. Salvage value can be auto-calculated from purchase price and condition."
         actions={
           <>
             <BackButton />
@@ -1428,7 +1539,7 @@ function AssetFormPage({ id }: { id?: string }) {
         </CardHeader>
         <CardContent className="space-y-8">
           {rows.map((r, idx) => (
-            <div key={idx} className="rounded-2xl border bg-background/70 p-4">
+            <div key={idx} className="rounded-2xl border bg-background/70 p-4 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Asset Row #{idx + 1}</h3>
                 {rows.length > 1 && (
@@ -1442,134 +1553,55 @@ function AssetFormPage({ id }: { id?: string }) {
                 )}
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <SelectIdField
-                  label="Company"
-                  value={r.companyId}
-                  onChange={(v) => update(idx, "companyId", v)}
-                  items={options.companies}
-                />
-                <InputField
-                  label="Asset Code"
-                  value={r.assetCode}
-                  onChange={(v) => update(idx, "assetCode", v)}
-                />
-                <InputField
-                  label="Asset Name"
-                  value={r.name}
-                  onChange={(v) => update(idx, "name", v)}
-                />
-                <SelectIdField
-                  label="Category"
-                  value={r.categoryId}
-                  onChange={(v) => update(idx, "categoryId", v)}
-                  items={options.categories}
-                />
-                <InputField
-                  label="Brand"
-                  value={r.brand}
-                  onChange={(v) => update(idx, "brand", v)}
-                />
-                <InputField
-                  label="Model"
-                  value={r.model}
-                  onChange={(v) => update(idx, "model", v)}
-                />
-                <InputField
-                  label="Serial Number"
-                  value={r.serialNumber}
-                  onChange={(v) => update(idx, "serialNumber", v)}
-                />
-                <InputField
-                  label="Asset Tag"
-                  value={r.assetTag}
-                  onChange={(v) => update(idx, "assetTag", v)}
-                />
-                <InputField
-                  label="Purchase Date"
-                  value={r.purchaseDate}
-                  onChange={(v) => update(idx, "purchaseDate", v)}
-                  type="date"
-                />
-                <NumberField
-                  label="Purchase Price"
-                  value={r.purchasePrice}
-                  onChange={(v) => update(idx, "purchasePrice", v)}
-                />
-                <NumberField
-                  label="Salvage Value"
-                  value={r.salvageValue}
-                  onChange={(v) => update(idx, "salvageValue", v)}
-                />
-                <NumberField
-                  label="Useful Life"
-                  value={r.usefulLifeYears}
-                  onChange={(v) => update(idx, "usefulLifeYears", v)}
-                />
-                <SelectField
-                  label="Depreciation"
-                  value={r.depreciationMethod}
-                  onChange={(v) => update(idx, "depreciationMethod", v)}
-                  options={[
-                    "Straight Line",
-                    "Declining Balance",
-                    "Manual",
-                    "No Depreciation",
-                  ]}
-                />
-                <SelectIdField
-                  label="Vendor"
-                  value={r.vendorId}
-                  onChange={(v) => update(idx, "vendorId", v)}
-                  items={options.vendors.filter(
-                    (v) => !r.companyId || v.companyId === r.companyId,
-                  )}
-                />
-                <SelectIdField
-                  label="Location"
-                  value={r.locationId}
-                  onChange={(v) => update(idx, "locationId", v)}
-                  items={options.locations}
-                />
-                <SelectField
-                  label="Condition"
-                  value={r.condition}
-                  onChange={(v) => update(idx, "condition", v)}
-                  options={[
-                    "New",
-                    "Excellent",
-                    "Good",
-                    "Fair",
-                    "Poor",
-                    "Damaged",
-                    "Unusable",
-                  ]}
-                />
-                <SelectField
-                  label="Status"
-                  value={r.status}
-                  onChange={(v) => update(idx, "status", v)}
-                  options={[
-                    "Available",
-                    "Assigned",
-                    "In Repair",
-                    "Damaged",
-                    "Lost",
-                    "Disposed",
-                    "Reserved",
-                  ]}
-                />
-                <InputField
-                  label="Warranty Expiry"
-                  value={r.warrantyExpiry}
-                  onChange={(v) => update(idx, "warrantyExpiry", v)}
-                  type="date"
-                />
+                <SelectIdField label="Company" required error={errorFor(idx, "companyId")} value={r.companyId} onChange={(v) => update(idx, "companyId", v)} items={options.companies} />
+                <InputField label="Asset Code" required error={errorFor(idx, "assetCode")} value={r.assetCode} onChange={(v) => update(idx, "assetCode", v)} />
+                <InputField label="Asset Name" required error={errorFor(idx, "name")} value={r.name} onChange={(v) => update(idx, "name", v)} />
+                <SelectIdField label="Category" required error={errorFor(idx, "categoryId")} value={r.categoryId} onChange={(v) => update(idx, "categoryId", v)} items={options.categories} />
+                <InputField label="Brand" required error={errorFor(idx, "brand")} value={r.brand} onChange={(v) => update(idx, "brand", v)} />
+                <InputField label="Model" required error={errorFor(idx, "model")} value={r.model} onChange={(v) => update(idx, "model", v)} />
+                <InputField label="Serial Number" required error={errorFor(idx, "serialNumber")} value={r.serialNumber} onChange={(v) => update(idx, "serialNumber", v)} />
+                <InputField label="Asset Tag" required error={errorFor(idx, "assetTag")} value={r.assetTag} onChange={(v) => update(idx, "assetTag", v)} />
+                <InputField label="Purchase Date" required error={errorFor(idx, "purchaseDate")} value={r.purchaseDate} onChange={(v) => update(idx, "purchaseDate", v)} type="date" />
+                <NumberField label="Purchase Price" required error={errorFor(idx, "purchasePrice")} value={r.purchasePrice} onChange={(v) => update(idx, "purchasePrice", v)} />
+                <SelectField label="Condition" required error={errorFor(idx, "condition")} value={r.condition} onChange={(v) => update(idx, "condition", v)} options={["New", "Excellent", "Good", "Fair", "Poor", "Damaged", "Unusable"]} />
+                <NumberField label="Useful Life" required error={errorFor(idx, "usefulLifeYears")} value={r.usefulLifeYears} onChange={(v) => update(idx, "usefulLifeYears", v)} />
+                <div className="space-y-4 rounded-2xl border bg-muted/20 p-4 md:col-span-3">
+                  <label className="flex w-fit items-center gap-2 text-sm font-medium text-foreground">
+                    <Checkbox
+                      checked={Boolean(r.manualSalvage)}
+                      onCheckedChange={(checked) =>
+                        update(idx, "manualSalvage", Boolean(checked))
+                      }
+                    />
+                    Manual salvage value
+                  </label>
+
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Auto-calculated from purchase price and condition. You can enable manual
+                    override if company policy requires.
+                  </p>
+
+                  <div className="max-w-md">
+                    <NumberField
+                      label="Salvage Value"
+                      value={r.salvageValue}
+                      disabled={!r.manualSalvage}
+                      onChange={(v) => update(idx, "salvageValue", v)}
+                      helper={
+                        !r.manualSalvage
+                          ? `${money.format(Number(r.salvageValue || 0))} based on ${r.condition}`
+                          : "Manual override enabled."
+                      }
+                    />
+                  </div>
+                </div>
+                <SelectField label="Depreciation" required error={errorFor(idx, "depreciationMethod")} value={r.depreciationMethod} onChange={(v) => update(idx, "depreciationMethod", v)} options={["Straight Line", "Declining Balance", "Manual", "No Depreciation"]} />
+                <SelectIdField label="Vendor" required error={errorFor(idx, "vendorId")} value={r.vendorId} onChange={(v) => update(idx, "vendorId", v)} items={options.vendors.filter((v) => !r.companyId || !v.companyId || v.companyId === r.companyId)} />
+                <SelectIdField label="Location" required error={errorFor(idx, "locationId")} value={r.locationId} onChange={(v) => update(idx, "locationId", v)} items={options.locations} />
+                <SelectField label="Status" required error={errorFor(idx, "status")} value={r.status} onChange={(v) => update(idx, "status", v)} options={["Available", "Assigned", "In Repair", "Damaged", "Lost", "Disposed", "Reserved"]} />
+                <InputField label="Warranty Expiry" required error={errorFor(idx, "warrantyExpiry")} value={r.warrantyExpiry} onChange={(v) => update(idx, "warrantyExpiry", v)} type="date" />
                 <div className="md:col-span-3">
-                  <TextAreaField
-                    label="Notes"
-                    value={r.notes}
-                    onChange={(v) => update(idx, "notes", v)}
-                  />
+                  <TextAreaField label="Notes" value={r.notes} onChange={(v) => update(idx, "notes", v)} />
                 </div>
               </div>
             </div>
@@ -1586,27 +1618,177 @@ export function AssetEditPage() {
   const params = useParams();
   return <AssetFormPage id={String(params.id)} />;
 }
-export function AssetImportPage() {
-  return (
-    <ImportPlaceholder
-      title="Bulk Asset Import"
-      templateUrl={assetflowService.assetTemplateUrl()}
-      columns={[
-        "assetCode",
-        "name",
-        "categoryId",
-        "brand",
-        "model",
-        "serialNumber",
-        "assetTag",
-        "purchaseDate",
-        "purchasePrice",
-        "warrantyExpiry",
-      ]}
-    />
-  );
+const assetImportHeaders = [
+  "companyCode",
+  "assetCode",
+  "name",
+  "categoryName",
+  "brand",
+  "model",
+  "serialNumber",
+  "assetTag",
+  "purchaseDate",
+  "purchasePrice",
+  "usefulLifeYears",
+  "depreciationMethod",
+  "warrantyExpiry",
+  "condition",
+  "status",
+  "vendorName",
+  "locationName",
+  "notes",
+];
+function buildAssetTemplateCsv() {
+  return `${assetImportHeaders.join(",")}\nH001,AST-0001,Dell Latitude 5420,Laptop,Dell,Latitude 5420,SN-0001,TAG-0001,2026-01-01,80000,5,Straight Line,2029-01-01,New,Available,Demo Vendor,Head Office,Optional notes\nH001,AST-0002,Dell Latitude 5421,Laptop,Dell,Latitude 5421,SN-0002,TAG-0002,2026-01-02,82000,5,Straight Line,2029-01-02,New,Available,Demo Vendor,Head Office,Optional notes\n`;
+}
+function downloadAssetTemplateCsv() {
+  const blob = new Blob([buildAssetTemplateCsv()], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "assetflow-assets-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
+function parsePreviewRows(csv: string) {
+  const lines = csv.split(/\r?\n/).filter(Boolean);
+  const headers = lines[0]?.split(",").map((h) => h.trim()) || [];
+  return lines.slice(1, 6).map((line) => {
+    const values = line.split(",");
+    return Object.fromEntries(headers.map((h, idx) => [h, values[idx] || ""]));
+  });
+}
+export function AssetImportPage() {
+  useAuthGuard();
+  const [csv, setCsv] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<AnyObj[]>([]);
+  const [result, setResult] = useState<AnyObj | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const downloadTemplate = downloadAssetTemplateCsv;
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    const text = await file.text();
+    setCsv(text);
+    setFileName(file.name);
+    setPreview(parsePreviewRows(text));
+    setResult(null);
+  };
+  const upload = async () => {
+    if (!csv.trim()) {
+      toast.error("Please select a CSV file first.");
+      return;
+    }
+    try {
+      setUploading(true);
+      const response = await assetflowService.importAssetsCsv(csv);
+      setResult(response.data.data);
+      const summary = response.data.data;
+      if (summary.failedCount) toast.error(`Import finished with ${summary.failedCount} failed row(s).`);
+      else toast.success(`Imported ${summary.successCount} asset(s) successfully.`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "CSV import failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Bulk Asset Import"
+        description="Download the exact CSV template, fill asset data, then upload it to insert assets into PostgreSQL."
+        actions={
+          <>
+            <BackButton fallback="/assets" />
+            <Button variant="outline" onClick={downloadTemplate}>
+              <Download className="mr-2 h-4 w-4" />Download Template
+            </Button>
+          </>
+        }
+      />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Upload CSV</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="rounded-2xl border border-dashed bg-muted/20 p-6 text-center">
+              <Upload className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="font-medium">Choose completed asset CSV file</p>
+              <p className="mb-4 text-sm text-muted-foreground">The first row must contain the exact template headers.</p>
+              <Input type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} className="mx-auto max-w-md" />
+              {fileName && <p className="mt-3 text-sm text-muted-foreground">Selected: {fileName}</p>}
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={upload} disabled={uploading || !csv.trim()}>
+                {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Upload and Import
+              </Button>
+            </div>
+            {preview.length > 0 && (
+              <div className="rounded-2xl border">
+                <div className="border-b p-4">
+                  <h3 className="font-semibold">Preview first {preview.length} row(s)</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>{assetImportHeaders.slice(0, 8).map((h) => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {preview.map((row, idx) => (
+                        <TableRow key={idx}>{assetImportHeaders.slice(0, 8).map((h) => <TableCell key={h}>{row[h]}</TableCell>)}</TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+            {result && (
+              <Card className="border-muted bg-muted/20">
+                <CardContent className="grid gap-4 p-4 md:grid-cols-3">
+                  <Field label="Total Rows" value={result.totalRows} />
+                  <Field label="Success" value={result.successCount} />
+                  <Field label="Failed" value={result.failedCount} />
+                  {result.errors?.length ? (
+                    <div className="md:col-span-3">
+                      <h4 className="mb-2 font-semibold">Validation Errors</h4>
+                      <div className="max-h-72 overflow-auto rounded-xl border bg-background">
+                        {result.errors.map((err: AnyObj, idx: number) => (
+                          <div key={idx} className="border-b p-3 text-sm last:border-b-0">
+                            Row {err.row}{err.field ? ` / ${err.field}` : ""}: {err.message}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Required Columns</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">Use these exact headers. All are required except notes.</p>
+            <div className="flex flex-wrap gap-2">
+              {assetImportHeaders.map((header) => (
+                <span key={header} className="rounded-full border bg-background px-3 py-1 text-xs font-medium">{header}</span>
+              ))}
+            </div>
+            <div className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
+              Company, category, vendor and location are matched by code/name. Purchase and warranty dates should use YYYY-MM-DD.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 export function AssetDetailPage({ id }: { id: string }) {
   useAuthGuard();
   const [asset, setAsset] = useState<AnyObj | null>(null);
@@ -1925,8 +2107,8 @@ export function EmployeesPage() {
           <PermissionAction permission="employees.create">
             <Button asChild>
               <Link href="/employees/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Employee
+                <Plus className="mr-2 h-4 w-4" />
+                Add Employee
               </Link>
             </Button>
           </PermissionAction>
@@ -2189,8 +2371,8 @@ export function VendorsPage() {
           <PermissionAction permission="vendors.create">
             <Button asChild>
               <Link href="/vendors/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Vendor
+                <Plus className="mr-2 h-4 w-4" />
+                Add Vendor
               </Link>
             </Button>
           </PermissionAction>
@@ -2282,8 +2464,8 @@ export function AssignmentsPage() {
           <PermissionAction permission="assignments.create">
             <Button asChild>
               <Link href="/assignments/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Assignment
+                <Plus className="mr-2 h-4 w-4" />
+                Create Assignment
               </Link>
             </Button>
           </PermissionAction>
@@ -2513,8 +2695,8 @@ export function ReturnsPage() {
           <PermissionAction permission="returns.create">
             <Button asChild>
               <Link href="/returns/create">
-              <Undo2 className="mr-2 h-4 w-4" />
-              Process Return
+                <Undo2 className="mr-2 h-4 w-4" />
+                Process Return
               </Link>
             </Button>
           </PermissionAction>
@@ -3117,8 +3299,8 @@ export function PurchasesPage() {
           <PermissionAction permission="purchases.create">
             <Button asChild>
               <Link href="/purchases/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Purchase
+                <Plus className="mr-2 h-4 w-4" />
+                Add Purchase
               </Link>
             </Button>
           </PermissionAction>
@@ -3325,8 +3507,8 @@ export function RepairsPage() {
           <PermissionAction permission="repairs.create">
             <Button asChild>
               <Link href="/repairs/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add New
+                <Plus className="mr-2 h-4 w-4" />
+                Add New
               </Link>
             </Button>
           </PermissionAction>
@@ -3931,9 +4113,9 @@ export function ReportsPage() {
                   onClick={() =>
                     r.path
                       ? downloadFile(
-                          r.path,
-                          `${r.title.replaceAll(" ", "-").toLowerCase()}.${r.path.endsWith("csv") ? "csv" : "html"}`,
-                        )
+                        r.path,
+                        `${r.title.replaceAll(" ", "-").toLowerCase()}.${r.path.endsWith("csv") ? "csv" : "html"}`,
+                      )
                       : toast.info("This report export will be connected next.")
                   }
                 >
@@ -3981,12 +4163,13 @@ export function AuditLogsPage() {
               <TableHead>Module</TableHead>
               <TableHead>Record</TableHead>
               <TableHead>IP</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={6} />
-            ) : (
+              <LoadingRows colSpan={7} />
+            ) : list.items.length ? (
               list.items.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>
@@ -3997,12 +4180,123 @@ export function AuditLogsPage() {
                   <TableCell>{a.module}</TableCell>
                   <TableCell>{a.recordId}</TableCell>
                   <TableCell>{a.ipAddress}</TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href={`/audit-logs/${a.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />View
+                      </Link>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
+            ) : (
+              <EmptyRows colSpan={7} />
             )}
           </TableBody>
         </Table>
       </DataTableShell>
+    </div>
+  );
+}
+function JsonSnapshot({ value }: { value: unknown }) {
+  return (
+    <pre className="max-h-[520px] overflow-auto rounded-2xl border bg-muted/30 p-4 text-xs leading-relaxed">
+      {JSON.stringify(value || null, null, 2)}
+    </pre>
+  );
+}
+export function AuditLogDetailPage() {
+  useAuthGuard();
+  const params = useParams();
+  const id = String(params.id);
+  const [log, setLog] = useState<AnyObj | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    assetflowService
+      .auditLog(id)
+      .then((r) => setLog(r.data.data))
+      .catch((e) => toast.error(e.response?.data?.message || "Audit log not found"))
+      .finally(() => setLoading(false));
+  }, [id]);
+  if (loading)
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-muted-foreground">
+          <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Loading audit detail...
+        </CardContent>
+      </Card>
+    );
+  if (!log) return <Card><CardContent className="p-8 text-center text-muted-foreground">Audit log not found.</CardContent></Card>;
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Audit Log Detail"
+        description={`${log.action} / ${log.module} / ${new Date(log.createdAt).toLocaleString()}`}
+        actions={<BackButton fallback="/audit-logs" />}
+      />
+      <div className="grid gap-4 lg:grid-cols-4">
+        <Card>
+          <CardHeader><CardTitle>User</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Field label="Name" value={log.userName || "System"} />
+            <Field label="Role" value={log.roleName || "-"} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Operation</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Field label="Action" value={log.action} />
+            <Field label="Module" value={log.module} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Record</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Field label="Record ID" value={log.recordId || "-"} />
+            <Field label="Date / Time" value={new Date(log.createdAt).toLocaleString()} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Request</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Field label="IP" value={log.ipAddress || "-"} />
+            <Field label="Device" value={log.device || "-"} />
+          </CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Changed Fields</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {log.changedFields?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>Field</TableHead><TableHead>Before</TableHead><TableHead>After</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {log.changedFields.map((change: AnyObj) => (
+                  <TableRow key={change.field}>
+                    <TableCell className="font-medium">{change.field}</TableCell>
+                    <TableCell className="max-w-md truncate">{JSON.stringify(change.before)}</TableCell>
+                    <TableCell className="max-w-md truncate">{JSON.stringify(change.after)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground">No field-level differences were detected for this action.</p>
+          )}
+        </CardContent>
+      </Card>
+      <Tabs defaultValue="before">
+        <TabsList>
+          <TabsTrigger value="before">Before Snapshot</TabsTrigger>
+          <TabsTrigger value="after">After Snapshot</TabsTrigger>
+        </TabsList>
+        <TabsContent value="before"><JsonSnapshot value={log.beforeSnapshot} /></TabsContent>
+        <TabsContent value="after"><JsonSnapshot value={log.afterSnapshot} /></TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -4171,8 +4465,8 @@ export function UsersPage() {
           <PermissionAction permission="users.create">
             <Button asChild>
               <Link href="/users/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Create User
+                <Plus className="mr-2 h-4 w-4" />
+                Create User
               </Link>
             </Button>
           </PermissionAction>

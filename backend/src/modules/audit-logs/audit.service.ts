@@ -2,6 +2,8 @@ import { Request } from "express";
 import { AuditLog } from "../../models";
 
 export async function writeAudit(req: Request, input: { action: string; module: string; recordId?: string | null; beforeSnapshot?: unknown; afterSnapshot?: unknown }) {
+  const action = input.action.toLowerCase();
+  if (action === "login" || action === "logout") return;
   await AuditLog.create({
     userId: req.user?.id || null,
     userName: req.user?.name || "System",

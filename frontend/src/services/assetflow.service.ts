@@ -34,6 +34,7 @@ export const assetflowService = {
   asset: (id: string) => api.get(`/assets/${id}`),
   createAsset: (payload: unknown) => api.post("/assets", payload),
   createAssetsBulk: (payload: unknown) => api.post("/assets/bulk", payload),
+  importAssetsCsv: (csv: string) => api.post("/assets/import", { csv }),
   updateAsset: (id: string, payload: unknown) => api.patch(`/assets/${id}`, payload),
   deleteAsset: (id: string) => api.delete(`/assets/${id}`),
   assignAsset: (id: string, payload: unknown) => api.post(`/assets/${id}/assign`, payload),
@@ -86,6 +87,7 @@ export const assetflowService = {
 
   scannerSearch: (q: string) => api.get("/scanner/search", { params: { q } }),
   auditLogs: (params?: ApiParams) => api.get("/audit-logs", { params }),
+  auditLog: (id: string) => api.get(`/audit-logs/${id}`),
   reportAssets: (params?: ApiParams) => api.get("/reports/assets", { params }),
   reportDepreciation: (params?: ApiParams) => api.get("/reports/depreciation", { params }),
   exportAssetsCsvUrl: () => `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/exports/assets.csv`,

@@ -7,7 +7,6 @@ import { RefreshToken, Role, User } from "../../models";
 import { ok } from "../../utils/api-response";
 import { ApiError } from "../../utils/errors";
 import { requireAuth } from "../../middlewares/auth.middleware";
-import { writeAudit } from "../audit-logs/audit.service";
 
 export const authRoutes = Router();
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
@@ -41,7 +40,6 @@ authRoutes.post("/login", async (req, res, next) => {
     const refreshToken = signRefresh(user);
     await saveRefreshToken(user, refreshToken);
     res.cookie("refreshToken", refreshToken, { httpOnly: true, sameSite: "lax", secure: env.nodeEnv === "production", maxAge: 7 * 24 * 60 * 60 * 1000 });
-    await writeAudit(req, { action: "Login", module: "Auth", recordId: user.id, afterSnapshot: { email: user.email } });
     const safeUser = user.toJSON() as any;
     delete safeUser.passwordHash;
     ok(res, "Login successful", { accessToken, user: safeUser });
@@ -66,7 +64,6 @@ authRoutes.post("/logout", requireAuth, async (req, res, next) => {
   try {
     await RefreshToken.update({ revokedAt: new Date() }, { where: { userId: req.user!.id, revokedAt: null } });
     res.clearCookie("refreshToken");
-    await writeAudit(req, { action: "Logout", module: "Auth", recordId: req.user!.id });
     ok(res, "Logout successful");
   } catch (error) { next(error); }
 });
