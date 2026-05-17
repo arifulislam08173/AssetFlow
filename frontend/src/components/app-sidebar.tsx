@@ -138,7 +138,7 @@ export function AppSidebar() {
                   <span className="truncate text-sm font-black tracking-wide text-white">AssetFlow</span>
                   <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_6px_rgba(52,211,153,0.12)]" />
                 </div>
-                {/* <span className="block truncate text-[11px] font-medium text-slate-300/70">Enterprise Command Center</span> */}
+                <span className="block truncate text-[11px] font-medium text-slate-300/70">Enterprise Command Center</span>
               </div>
             )}
           </Link>
@@ -212,13 +212,13 @@ export function AppSidebar() {
         ) : (
           <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-3 shadow-[0_18px_40px_rgba(2,6,23,0.18)]">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 rounded-xl ring-2 ring-emerald-400/20">
-                <AvatarFallback className="rounded-xl bg-emerald-400/15 text-sm font-black text-emerald-100">
+              <Avatar className="h-11 w-11 rounded-2xl ring-2 ring-emerald-400/20">
+                <AvatarFallback className="rounded-2xl bg-emerald-400/15 text-sm font-black text-emerald-100">
                   {profile.initials}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-white">{profile.displayName}</p>
+                <p className="truncate text-sm font-bold text-white">{profile.displayName}</p>
                 <p className="truncate text-[11px] text-slate-300/70">{profile.email}</p>
               </div>
             </div>

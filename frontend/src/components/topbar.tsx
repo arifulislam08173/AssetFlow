@@ -35,7 +35,7 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/82 px-4 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/72">
-      {/* <SidebarTrigger className="h-10 w-10 rounded-2xl border border-primary/15 bg-primary/8 text-foreground shadow-sm hover:bg-primary/12" /> */}
+      <SidebarTrigger className="h-10 w-10 rounded-2xl border border-primary/15 bg-primary/8 text-foreground shadow-sm hover:bg-primary/12" />
 
       <div className="hidden min-w-0 flex-1 md:block">
         <div className="relative max-w-xl">
@@ -48,6 +48,15 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="hidden items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary lg:flex">
+          <Sparkles className="h-3.5 w-3.5" />
+          Premium workspace
+        </div>
+
+        <Button variant="ghost" size="icon" className="hidden rounded-2xl sm:inline-flex">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+
         <Button asChild variant="ghost" size="icon" className="relative rounded-2xl">
           <Link href="/notifications">
             <Bell className="h-4 w-4" />
@@ -63,10 +72,10 @@ export function Topbar() {
                   {profile.initials}
                 </AvatarFallback>
               </Avatar>
-              {/* <div className="hidden max-w-44 text-left leading-tight md:block">
+              <div className="hidden max-w-44 text-left leading-tight md:block">
                 <p className="truncate text-xs font-bold">{profile.displayName}</p>
                 <p className="truncate text-[10px] text-muted-foreground">{profile.email}</p>
-              </div> */}
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2">
