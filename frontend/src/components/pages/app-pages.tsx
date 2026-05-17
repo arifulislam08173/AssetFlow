@@ -596,16 +596,16 @@ export function CompaniesPage() {
       <PageHeader
         title="Companies"
         description="Create and maintain companies for future SaaS / multi-company selling."
-        actions={
-          <PermissionAction permission="companies.create">
-            <Button asChild>
-              <Link href="/companies/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Company
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="companies.create">
+        //     <Button asChild>
+        //       <Link href="/companies/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add Company
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -1101,16 +1101,16 @@ export function CategoriesPage() {
       <PageHeader
         title="Asset Categories"
         description="Global asset categories used across all companies/wings. Company is selected when assets are created or assigned."
-        actions={
-          <PermissionAction permission="categories.create">
-            <Button asChild>
-              <Link href="/categories/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="categories.create">
+        //     <Button asChild>
+        //       <Link href="/categories/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add Category
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -1234,14 +1234,14 @@ export function AssetsPage() {
                 </Link>
               </Button>
             </PermissionAction>
-            <PermissionAction permission="assets.create">
+            {/* <PermissionAction permission="assets.create">
               <Button asChild>
                 <Link href="/assets/create">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Asset
                 </Link>
               </Button>
-            </PermissionAction>
+            </PermissionAction> */}
           </>
         }
       />
@@ -2103,16 +2103,16 @@ export function EmployeesPage() {
       <PageHeader
         title="Employees"
         description="Company-wise employee profiles for assignments, returns and clearance."
-        actions={
-          <PermissionAction permission="employees.create">
-            <Button asChild>
-              <Link href="/employees/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Employee
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="employees.create">
+        //     <Button asChild>
+        //       <Link href="/employees/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add Employee
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -2367,16 +2367,16 @@ export function VendorsPage() {
       <PageHeader
         title="Vendors"
         description="Supplier and warranty support directory."
-        actions={
-          <PermissionAction permission="vendors.create">
-            <Button asChild>
-              <Link href="/vendors/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Vendor
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="vendors.create">
+        //     <Button asChild>
+        //       <Link href="/vendors/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add Vendor
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -2460,16 +2460,16 @@ export function AssignmentsPage() {
       <PageHeader
         title="Asset Assignments"
         description="Company-aware handover tracking from stock to employee."
-        actions={
-          <PermissionAction permission="assignments.create">
-            <Button asChild>
-              <Link href="/assignments/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Assignment
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="assignments.create">
+        //     <Button asChild>
+        //       <Link href="/assignments/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Create Assignment
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -2691,16 +2691,16 @@ export function ReturnsPage() {
       <PageHeader
         title="Returns & Clearance"
         description="Receive assets back and update employee clearance by company."
-        actions={
-          <PermissionAction permission="returns.create">
-            <Button asChild>
-              <Link href="/returns/create">
-                <Undo2 className="mr-2 h-4 w-4" />
-                Process Return
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="returns.create">
+        //     <Button asChild>
+        //       <Link href="/returns/create">
+        //         <Undo2 className="mr-2 h-4 w-4" />
+        //         Process Return
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -3295,16 +3295,16 @@ export function PurchasesPage() {
       <PageHeader
         title="Purchase Management"
         description="Company-wise invoice and purchase records with view, edit, delete and printable PDF actions."
-        actions={
-          <PermissionAction permission="purchases.create">
-            <Button asChild>
-              <Link href="/purchases/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Purchase
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="purchases.create">
+        //     <Button asChild>
+        //       <Link href="/purchases/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add Purchase
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -3503,16 +3503,16 @@ export function RepairsPage() {
       <PageHeader
         title="Repair & Upgrade"
         description="Repair tickets, warranty claims, and upgrade tracking with actions and PDF export."
-        actions={
-          <PermissionAction permission="repairs.create">
-            <Button asChild>
-              <Link href="/repairs/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Add New
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="repairs.create">
+        //     <Button asChild>
+        //       <Link href="/repairs/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Add New
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <DataTableShell
         toolbar={
@@ -4461,16 +4461,16 @@ export function UsersPage() {
       <PageHeader
         title="Users & Roles"
         description="Default roles: Super Admin, Company Admin, IT, Asset Manager, HR Manager, Finance Manager, Auditor, Viewer."
-        actions={
-          <PermissionAction permission="users.create">
-            <Button asChild>
-              <Link href="/users/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Create User
-              </Link>
-            </Button>
-          </PermissionAction>
-        }
+        // actions={
+        //   <PermissionAction permission="users.create">
+        //     <Button asChild>
+        //       <Link href="/users/create">
+        //         <Plus className="mr-2 h-4 w-4" />
+        //         Create User
+        //       </Link>
+        //     </Button>
+        //   </PermissionAction>
+        // }
       />
       <Tabs defaultValue="users">
         <TabsList>
