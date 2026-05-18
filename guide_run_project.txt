@@ -1,0 +1,48 @@
+1. Backend Setup
+cd backend
+npm install
+cp .env.example .env
+
+Create database in PostgreSQL:
+
+CREATE DATABASE assetflow;
+
+Run database seed:
+npm run db:seed
+Start backend:
+npm run dev
+
+Backend will run on:
+http://localhost:5000
+
+2. Frontend Setup
+
+Open another terminal:
+cd frontend
+npm install
+cp .env.example .env.local
+
+Start frontend:
+npm run dev
+Frontend will run on:
+http://localhost:3000
+3. Login
+Open browser:
+http://localhost:3000
+Default login:
+Email: admin@assetflow.com
+Password: password
+
+Useful Commands
+Backend:
+npm run dev
+npm run build
+npm run db:seed
+npm run db:fresh
+
+Frontend:
+npm run dev
+npm run build
+
+Note:
+npm run db:fresh will reset the database and remove old data.

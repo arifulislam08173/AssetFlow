@@ -107,8 +107,11 @@ import {
 
 export function DashboardPage() {
   useAuthGuard();
+
   const [stats, setStats] = useState<AnyObj>({});
   const [loading, setLoading] = useState(true);
+  const [chartReady, setChartReady] = useState(false);
+
   useEffect(() => {
     assetflowService
       .dashboard()
@@ -116,16 +119,26 @@ export function DashboardPage() {
       .catch(() => toast.error("Login required for dashboard API"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setChartReady(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   const chartData = useMemo(
     () => [
-      { name: "Total", value: stats.totalAssets || 0 },
-      { name: "Assigned", value: stats.assignedAssets || 0 },
-      { name: "Available", value: stats.availableAssets || 0 },
-      { name: "Repair", value: stats.inRepair || 0 },
-      { name: "Lost", value: stats.lost || 0 },
+      { name: "Total", value: Number(stats.totalAssets || 0) },
+      { name: "Assigned", value: Number(stats.assignedAssets || 0) },
+      { name: "Available", value: Number(stats.availableAssets || 0) },
+      { name: "Repair", value: Number(stats.inRepair || 0) },
+      { name: "Lost", value: Number(stats.lost || 0) },
     ],
     [stats],
   );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -141,6 +154,7 @@ export function DashboardPage() {
                 </Link>
               </Button>
             </PermissionAction>
+
             <PermissionAction permission="assets.create">
               <Button asChild>
                 <Link href="/assets/create">
@@ -152,30 +166,35 @@ export function DashboardPage() {
           </>
         }
       />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Total Assets"
           value={loading ? "..." : stats.totalAssets || 0}
           icon={Boxes}
         />
+
         <StatCard
           label="Assigned"
           value={stats.assignedAssets || 0}
           icon={ClipboardCheck}
           tone="info"
         />
+
         <StatCard
           label="Available"
           value={stats.availableAssets || 0}
           icon={CheckCircle2}
           tone="success"
         />
+
         <StatCard
           label="In Repair"
           value={stats.inRepair || 0}
           icon={Wrench}
           tone="warning"
         />
+
         <StatCard
           label="Employees"
           value={stats.employees || 0}
@@ -183,24 +202,28 @@ export function DashboardPage() {
           tone="destructive"
         />
       </div>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Purchase Value"
           value={money.format(stats.purchaseValue || 0)}
           icon={Wallet}
         />
+
         <StatCard
           label="Current Value"
           value={money.format(stats.currentValue || 0)}
           icon={Wallet}
           tone="success"
         />
+
         <StatCard
           label="Damaged"
           value={stats.damaged || 0}
           icon={AlertTriangle}
           tone="warning"
         />
+
         <StatCard
           label="Lost"
           value={stats.lost || 0}
@@ -208,29 +231,47 @@ export function DashboardPage() {
           tone="destructive"
         />
       </div>
-      <div className="grid gap-4 xl:grid-cols-7">
-        <Card className="min-w-0 xl:col-span-4">
+
+      <div className="grid min-w-0 gap-4 xl:grid-cols-7">
+        <Card className="min-w-0 overflow-hidden xl:col-span-4">
           <CardHeader>
             <CardTitle>Asset Status Overview</CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="h-80 min-h-80 w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="h-80 min-h-[320px] w-full min-w-0 overflow-hidden">
+              {chartReady ? (
+                <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+                  <BarChart
+                    data={chartData}
+                    margin={{
+                      top: 8,
+                      right: 16,
+                      left: 0,
+                      bottom: 0,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed text-sm text-muted-foreground">
+                  Preparing chart...
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
-        <Card className="xl:col-span-3">
+
+        <Card className="min-w-0 xl:col-span-3">
           <CardHeader>
             <CardTitle>Recent Activities</CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-3">
             {(stats.recentActivities?.length
               ? stats.recentActivities
@@ -254,5 +295,3 @@ export function DashboardPage() {
     </div>
   );
 }
-
-

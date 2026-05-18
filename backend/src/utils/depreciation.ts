@@ -1,4 +1,9 @@
-export function calculateStraightLineValue(input: { purchasePrice: number; salvageValue?: number; usefulLifeYears: number; purchaseDate: Date | string }) {
+export function calculateStraightLineValue(input: {
+  purchasePrice: number;
+  salvageValue?: number;
+  usefulLifeYears: number;
+  purchaseDate: Date | string;
+}) {
   const purchasePrice = Number(input.purchasePrice || 0);
   const salvageValue = Number(input.salvageValue || 0);
   const life = Math.max(Number(input.usefulLifeYears || 1), 1);

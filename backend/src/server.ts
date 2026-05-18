@@ -8,10 +8,10 @@ async function bootstrap() {
     await sequelize.authenticate();
     console.log("Database connected successfully");
     app.listen(env.port, () => console.log(`AssetFlow API running on http://localhost:${env.port}`));
-  } catch (error) {
+  }
+  catch (error) {
     console.error("Failed to start server", error);
     process.exit(1);
   }
 }
-
 bootstrap();

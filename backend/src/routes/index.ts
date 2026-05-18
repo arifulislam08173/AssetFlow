@@ -1,0 +1,40 @@
+import type { Express } from "express";
+import { requireAuth, requirePermission } from "../middlewares/auth.middleware";
+import { requireModuleAction } from "../middlewares/module-permission.middleware";
+import { authRoutes } from "../controllers/auth.controller";
+import { dashboardRoutes } from "../controllers/dashboard.controller";
+import { assetRoutes } from "../controllers/asset.controller";
+import { employeeRoutes } from "../controllers/employee.controller";
+import { vendorRoutes } from "../controllers/vendor.controller";
+import { purchaseRoutes } from "../controllers/purchase.controller";
+import { repairRoutes } from "../controllers/repair.controller";
+import { reportRoutes } from "../controllers/report.controller";
+import { auditRoutes } from "../controllers/audit.controller";
+import { userRoutes } from "../controllers/user.controller";
+import { companyRoutes } from "../controllers/company.controller";
+import { categoryRoutes } from "../controllers/category.controller";
+import { assignmentRoutes } from "../controllers/assignment.controller";
+import { returnRoutes } from "../controllers/return.controller";
+import { scannerRoutes } from "../controllers/scanner.controller";
+import { exportRoutes } from "../controllers/export.controller";
+import { masterRoutes } from "../controllers/master.controller";
+
+export function registerRoutes(app: Express) {
+  app.use("/api/v1/auth", authRoutes);
+  app.use("/api/v1/dashboard", requireAuth, dashboardRoutes);
+  app.use("/api/v1/assets", requireAuth, requireModuleAction("assets"), assetRoutes);
+  app.use("/api/v1/employees", requireAuth, requireModuleAction("employees"), employeeRoutes);
+  app.use("/api/v1/vendors", requireAuth, requireModuleAction("vendors"), vendorRoutes);
+  app.use("/api/v1/purchases", requireAuth, requireModuleAction("purchases"), purchaseRoutes);
+  app.use("/api/v1/repairs", requireAuth, requireModuleAction("repairs"), repairRoutes);
+  app.use("/api/v1/reports", requireAuth, requirePermission("reports.view"), reportRoutes);
+  app.use("/api/v1/audit-logs", requireAuth, requirePermission("audit_logs.view"), auditRoutes);
+  app.use("/api/v1/users", requireAuth, requireModuleAction("users"), userRoutes);
+  app.use("/api/v1/companies", requireAuth, requireModuleAction("companies"), companyRoutes);
+  app.use("/api/v1/categories", requireAuth, requireModuleAction("categories"), categoryRoutes);
+  app.use("/api/v1/assignments", requireAuth, requireModuleAction("assignments"), assignmentRoutes);
+  app.use("/api/v1/returns", requireAuth, requireModuleAction("returns"), returnRoutes);
+  app.use("/api/v1/scanner", requireAuth, requirePermission("scanner.use"), scannerRoutes);
+  app.use("/api/v1/exports", requireAuth, requirePermission("reports.export"), exportRoutes);
+  app.use("/api/v1/master", requireAuth, masterRoutes);
+}
