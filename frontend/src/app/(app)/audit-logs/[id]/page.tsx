@@ -1,2 +1,2 @@
-import { AuditLogDetailPage } from "@/components/pages/app-pages";
+import { AuditLogDetailPage } from "@/components/pages/audit-logs-page";
 export default AuditLogDetailPage;

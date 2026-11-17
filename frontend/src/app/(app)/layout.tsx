@@ -4,9 +4,11 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Topbar } from "@/components/topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { CurrentUserProvider } from "@/hooks/use-current-user";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
+    <CurrentUserProvider>
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
@@ -17,5 +19,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       <Toaster richColors />
     </SidebarProvider>
+    </CurrentUserProvider>
   );
 }

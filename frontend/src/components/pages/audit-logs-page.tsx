@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 export function AuditLogsPage() {
@@ -117,15 +119,15 @@ export function AuditLogsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Activity date" filterChoices={[{ key: "action", label: "actions", options: ["Created", "Updated", "Deleted", "Login"].map((v) => ({ value: v, label: v })) }, { key: "module", label: "modules", options: ["Assets", "Assignments", "Returns", "Employees", "Vendors", "Purchases", "Repairs", "Users", "Categories"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             onCsv={() =>
-              downloadFile(
-                "/exports/audit-logs.csv",
+              downloadFile(withListFilters("/exports/audit-logs.csv", list.filters, list.search),
                 "assetflow-audit-logs.csv",
               )
             }
-            onPdf={() => toast.info("Audit PDF export coming next")}
+            onPdf={() => downloadFile(withListFilters("/exports/audit-logs.pdf", list.filters, list.search), "assetflow-audit-logs.pdf")}
           />
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}

@@ -1,2 +1,2 @@
-import { CategoriesPage } from "@/components/pages/app-pages";
+import { CategoriesPage } from "@/components/pages/categories-page";
 export default CategoriesPage;

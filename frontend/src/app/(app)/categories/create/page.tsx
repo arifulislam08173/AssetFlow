@@ -1,2 +1,2 @@
-import { CategoryCreatePage } from "@/components/pages/app-pages";
+import { CategoryCreatePage } from "@/components/pages/categories-page";
 export default CategoryCreatePage;

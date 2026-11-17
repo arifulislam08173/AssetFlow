@@ -1,4 +1,6 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
+import { pdfMoney, sendPdfReport } from "../utils/pdf-report";
 import { z } from "zod";
 import { Asset, RepairTicket, Vendor } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -16,12 +18,6 @@ const schema = z.object({
   status: z.string().default("Open"),
 });
 
-function reportHtml(title: string, body: string) {
-  return `<!doctype html><html><head><title>${title}</title><style>
-  body{font-family:Arial,sans-serif;padding:32px;color:#0f172a;background:#fff}.brand{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f766e;padding-bottom:14px;margin-bottom:22px}h1{margin:0;color:#0f766e}.meta{color:#64748b;font-size:12px}.card{border:1px solid #cbd5e1;border-radius:14px;padding:18px;margin:16px 0}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #cbd5e1;padding:9px;font-size:12px;text-align:left}th{background:#f0fdfa}@media print{button{display:none}}
- </style></head><body><div class="brand"><div><h1>AssetFlow</h1><div class="meta">Enterprise Asset Management</div></div><div class="meta">Generated ${new Date().toLocaleString()}</div></div><h2>${title}</h2>${body}<script>window.print()</script></body></html>`;
-}
-
 async function repairWithDetails(id: string) {
   return RepairTicket.findByPk(id, { include: [Asset, Vendor] });
 }
@@ -29,10 +25,16 @@ async function repairWithDetails(id: string) {
 repairRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const include: any[] = [Asset, Vendor];
-    if (req.query.companyId)
+    const where: any = {};
+    addListQuery(where, req, { search: ["ticketCode", "problem", "$Asset.assetCode$", "$Asset.name$", "$Vendor.name$"], exact: ["status", "repairVendorId"], date: "reportedAt", dateOnly: false });
+    const include: any[] = [{ model: Asset }, { model: Vendor }];
+    if (req.query.companyId) {
       include[0].where = { companyId: req.query.companyId };
+      include[0].required = true;
+    }
     const { rows, count } = await RepairTicket.findAndCountAll({
+      where,
+      subQuery: false,
       include,
       distinct: true,
       order: [["createdAt", "DESC"]],
@@ -127,18 +129,20 @@ repairRoutes.delete("/:id", async (req, res, next) => {
 repairRoutes.get("/:id/pdf", async (req, res, next) => {
   try {
     const item: any = await repairWithDetails(req.params.id);
-    if (!item)
-      throw new ApiError(404, "Repair ticket not found");
+    if (!item) throw new ApiError(404, "Repair ticket not found");
     const asset = item.Asset || {};
     const vendor = item.Vendor || {};
-    const body = `<div class="card"><strong>Ticket:</strong> ${item.ticketCode}<br/><strong>Status:</strong> ${item.status}<br/><strong>Cost:</strong> ${item.repairCost || 0}</div>
-   <table><tr><th>Asset Code</th><th>Asset</th><th>Serial</th><th>Vendor</th><th>Problem / Upgrade</th></tr>
-   <tr><td>${asset.assetCode || ""}</td><td>${asset.name || ""}</td><td>${asset.serialNumber || ""}</td><td>${vendor.name || ""}</td><td>${item.problem || ""}</td></tr></table>`;
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Content-Disposition", `inline; filename=repair-${item.id}.html`);
-    res.send(reportHtml("Repair / Upgrade Report", body));
-  }
-  catch (e) {
-    next(e);
-  }
+    sendPdfReport(res, {
+      title: "Asset Repair / Upgrade Record", filename: `repair-${item.ticketCode}.pdf`,
+      subtitle: "Maintenance ticket and cost details",
+      details: [
+        ["Ticket", item.ticketCode], ["Status", item.status],
+        ["Asset Code", asset.assetCode], ["Asset", asset.name],
+        ["Serial", asset.serialNumber], ["Repair Vendor", vendor.name],
+        ["Reported", item.reportedAt], ["Repair Cost", pdfMoney(item.repairCost)],
+        ["Problem / Work Description", item.problem],
+      ],
+      sections: [],
+    });
+  } catch (error) { next(error); }
 });

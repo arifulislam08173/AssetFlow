@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Bar,
   BarChart,
@@ -40,6 +41,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { downloadFile } from "@/lib/download-file";
+import { BackendFilters, type FilterChoice } from "@/components/backend-filters";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { assetflowService } from "@/services/assetflow.service";
 import { notifications, recentActivities } from "@/lib/mock-data";
 import { PageHeader } from "@/components/page-header";
@@ -81,7 +85,7 @@ export const money = new Intl.NumberFormat("en-BD", {
   maximumFractionDigits: 0,
 });
 export type AnyObj = Record<string, any>;
-export type Meta = { page: number; limit: number; total: number; totalPages: number };
+export type Meta = { page: number; limit: number; total: number; totalPages: number; purchaseValue?: number; currentValue?: number };
 export type Options = {
   companies: AnyObj[];
   categories: AnyObj[];
@@ -90,7 +94,7 @@ export type Options = {
   vendors: AnyObj[];
   roles: AnyObj[];
 };
-export const emptyMeta: Meta = { page: 1, limit: 20, total: 0, totalPages: 1 };
+export const emptyMeta: Meta = { page: 1, limit: 10, total: 0, totalPages: 1 };
 export const emptyOptions: Options = {
   companies: [],
   categories: [],
@@ -155,16 +159,7 @@ export function moduleFromPath(path?: string) {
 }
 
 export function useCurrentPermissions() {
-  const [permissions, setPermissions] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!localStorage.getItem("assetflow_access_token")) return;
-    assetflowService
-      .me()
-      .then((res) => setPermissions(res.data.data?.permissions || []))
-      .catch(() => setPermissions([]));
-  }, []);
+  const { permissions } = useCurrentUser();
 
   return {
     permissions,
@@ -188,44 +183,51 @@ export function useOptions(companyId?: string) {
 export function useApiList(fetcher: (params?: AnyObj) => Promise<any>) {
   const [items, setItems] = useState<AnyObj[]>([]);
   const [meta, setMeta] = useState<Meta>(emptyMeta);
-  const [search, setSearch] = useState("");
+  const [search, setSearchValue] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<AnyObj>({});
   const [loading, setLoading] = useState(true);
   const [key, setKey] = useState(0);
+  const filterKey = JSON.stringify(filters);
+
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 280);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    fetcher({
-      page: meta.page,
-      limit: meta.limit,
-      search: search || undefined,
-      ...filters,
-    })
-      .then((r) => {
-        setItems(r.data.data || []);
-        setMeta(r.data.meta || meta);
+    fetcher({ page: meta.page, limit: meta.limit, search: debouncedSearch || undefined, ...filters })
+      .then((response) => {
+        if (!active) return;
+        setItems(response.data.data || []);
+        setMeta(response.data.meta || emptyMeta);
       })
-      .catch((e) =>
-        toast.error(
-          e.response?.data?.message || "API load failed. Please login.",
-        ),
-      )
-      .finally(() => setLoading(false));
-  }, [meta.page, meta.limit, search, key, JSON.stringify(filters)]);
+      .catch((error) => {
+        if (!active) return;
+        toast.error(error.response?.data?.message || "Unable to load records. Please retry.");
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [fetcher, meta.page, meta.limit, debouncedSearch, filterKey, key]);
+
   return {
-    items,
-    meta,
-    setMeta,
-    search,
-    setSearch,
-    filters,
-    setFilters,
-    loading,
-    refresh: () => setKey((v) => v + 1),
+    items, meta, setMeta, search,
+    setSearch: (value: string) => {
+      setSearchValue(value);
+      setMeta((previous) => previous.page === 1 ? previous : { ...previous, page: 1 });
+    },
+    filters, setFilters: (updater: ((f: AnyObj) => AnyObj) | AnyObj) => {
+      setFilters(updater);
+      setMeta((old) => old.page === 1 ? old : { ...old, page: 1 });
+    }, loading,
+    refresh: () => setKey((current) => current + 1),
   };
 }
 
 export function Toolbar({
-  placeholder = "Search...",
+  placeholder = "Search by prefix (e.g. K)...",
   search,
   setSearch,
   createHref,
@@ -235,6 +237,7 @@ export function Toolbar({
   onPdf,
   onCsv,
   children,
+  filters, setFilters, filterChoices, dateLabel,
 }: {
   placeholder?: string;
   search: string;
@@ -246,100 +249,111 @@ export function Toolbar({
   onPdf?: () => void;
   onCsv?: () => void;
   children?: React.ReactNode;
+  filters?: AnyObj;
+  setFilters?: (updater: (previous: AnyObj) => AnyObj) => void;
+  filterChoices?: FilterChoice[];
+  dateLabel?: string;
 }) {
   const { can } = useCurrentPermissions();
   const moduleName = moduleFromPath(createHref);
   const canCreate = !createHref || !moduleName || can(`${moduleName}.create`);
   const canExport = can("reports.export") || (moduleName ? can(`${moduleName}.export`) : false);
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHeaderTarget(document.querySelector<HTMLElement>("[data-assetflow-header-actions]"));
+  }, []);
+
+  const actionButtons = (
+    <div className="flex flex-wrap items-center gap-2">
+      {(templateUrl || onTemplateDownload) && canExport && (
+        onTemplateDownload ? (
+          <Button variant="outline" size="sm" onClick={onTemplateDownload}>
+            <Download className="mr-2 h-4 w-4" /> Template
+          </Button>
+        ) : (
+          <Button asChild variant="outline" size="sm">
+            <a href={templateUrl}><Download className="mr-2 h-4 w-4" /> Template</a>
+          </Button>
+        )
+      )}
+      {onCsv && canExport && (
+        <Button variant="outline" size="sm" onClick={onCsv}><Download className="mr-2 h-4 w-4" /> CSV</Button>
+      )}
+      {onPdf && canExport && (
+        <Button variant="outline" size="sm" onClick={onPdf}><FileBarChart className="mr-2 h-4 w-4" /> PDF</Button>
+      )}
+      {createHref && canCreate && (
+        <Button asChild size="sm"><Link href={createHref}><Plus className="mr-2 h-4 w-4" />{createLabel}</Link></Button>
+      )}
+    </div>
+  );
+  const hasActions = Boolean(((templateUrl || onTemplateDownload) && canExport) || (onCsv && canExport) || (onPdf && canExport) || (createHref && canCreate));
+  const hasFilters = Boolean(filters && setFilters);
+  const resetAll = () => { setSearch(""); setFilters?.(() => ({})); };
+  const filterActive = Boolean(search.trim()) || Object.values(filters || {}).some((value) => value !== undefined && value !== null && value !== "" && value !== "all");
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border bg-card/70 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex flex-1 flex-col gap-2 sm:flex-row">
-        <div className="relative min-w-64 flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={placeholder}
-            className="pl-9"
-          />
+    <>
+      <div className="space-y-3 rounded-xl">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:overflow-x-auto lg:pb-1">
+          <div className="relative w-full min-w-[210px] flex-1 lg:max-w-sm">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)}
+              placeholder={placeholder} aria-label="Search records by prefix"
+              className="h-10 rounded-xl pl-10 text-sm" />
+          </div>
+          {children}
+          {hasFilters && <BackendFilters filters={filters!} onChange={setFilters!} choices={filterChoices}
+            section="choices" showReset={false} />}
         </div>
-        {children}
+        {hasFilters && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+          <BackendFilters filters={filters!} onChange={setFilters!} dateLabel={dateLabel}
+            section="dates" showReset={false} />
+          {filterActive && <Button variant="outline" size="sm" className="h-10 rounded-xl"
+            onClick={resetAll}>Clear all</Button>}
+        </div>}
+        {!headerTarget && hasActions && <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+          {actionButtons}
+        </div>}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {(templateUrl || onTemplateDownload) && canExport && (
-          onTemplateDownload ? (
-            <Button variant="outline" size="sm" onClick={onTemplateDownload}>
-              <Download className="mr-2 h-4 w-4" />
-              Template
-            </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <a href={templateUrl}>
-                <Download className="mr-2 h-4 w-4" />
-                Template
-              </a>
-            </Button>
-          )
-        )}
-        {onCsv && canExport && (
-          <Button variant="outline" size="sm" onClick={onCsv}>
-            <Download className="mr-2 h-4 w-4" />
-            CSV
-          </Button>
-        )}
-        {onPdf && canExport && (
-          <Button variant="outline" size="sm" onClick={onPdf}>
-            <FileBarChart className="mr-2 h-4 w-4" />
-            PDF
-          </Button>
-        )}
-        {createHref && canCreate && (
-          <Button asChild size="sm">
-            <Link href={createHref}>
-              <Plus className="mr-2 h-4 w-4" />
-              {createLabel}
-            </Link>
-          </Button>
-        )}
+      {headerTarget && hasActions && createPortal(actionButtons, headerTarget)}
+    </>
+  );
+}
+
+export function Footer({ meta, setMeta }: { meta: Meta; setMeta: (updater: (m: Meta) => Meta) => void }) {
+  const first = meta.total === 0 ? 0 : (meta.page - 1) * meta.limit + 1;
+  const last = Math.min(meta.page * meta.limit, meta.total);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground sm:text-sm">
+      <span>Showing <b className="text-foreground">{first}–{last}</b> of <b className="text-foreground">{meta.total}</b> records</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor="list-page-size">Rows per page</label>
+        <select id="list-page-size" aria-label="Rows per page" value={meta.limit} onChange={(e) => setMeta((m) => ({ ...m, limit: Number(e.target.value), page: 1 }))}
+          className="h-9 rounded-md border border-input bg-background px-3 text-foreground">
+          {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+        </select>
+        <span className="min-w-20 text-center">Page {meta.page} / {meta.totalPages || 1}</span>
+        <Button size="sm" variant="outline" aria-label="First page" disabled={meta.page <= 1} onClick={() => setMeta((m) => ({ ...m, page: 1 }))}>«</Button>
+        <Button size="sm" variant="outline" disabled={meta.page <= 1} onClick={() => setMeta((m) => ({ ...m, page: m.page - 1 }))}>Previous</Button>
+        <Button size="sm" variant="outline" disabled={meta.page >= meta.totalPages} onClick={() => setMeta((m) => ({ ...m, page: m.page + 1 }))}>Next</Button>
+        <Button size="sm" variant="outline" aria-label="Last page" disabled={meta.page >= meta.totalPages} onClick={() => setMeta((m) => ({ ...m, page: m.totalPages }))}>»</Button>
       </div>
     </div>
   );
 }
 
-export function Footer({
-  meta,
-  setMeta,
-}: {
-  meta: Meta;
-  setMeta: (updater: (m: Meta) => Meta) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-      <span>
-        Page {meta.page} of {meta.totalPages || 1} / {meta.total} records
-      </span>
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={meta.page <= 1}
-          onClick={() => setMeta((m) => ({ ...m, page: m.page - 1 }))}
-        >
-          Previous
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={meta.page >= meta.totalPages}
-          onClick={() => setMeta((m) => ({ ...m, page: m.page + 1 }))}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  );
+export function withListFilters(path: string, filters: AnyObj = {}, search = "") {
+  const [base, existingQuery] = path.split("?");
+  const params = new URLSearchParams(existingQuery || "");
+  if (search.trim()) params.set("search", search.trim());
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && value !== "" && value !== "all") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
+
 export function Field({
   label,
   value,
@@ -387,22 +401,6 @@ export function EmptyRows({
     </TableRow>
   );
 }
-async function downloadFile(path: string, filename: string) {
-  try {
-    const res = await api.get(path, { responseType: "blob" });
-    const blob = new Blob([res.data], {
-      type: String(res.headers["content-type"] || "application/octet-stream"),
-    });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || "Export failed");
-  }
-}
 export function BackButton({ fallback = "/dashboard" }: { fallback?: string }) {
   const router = useRouter();
   return (
@@ -437,7 +435,7 @@ export function RowActions({
   view,
   edit,
   pdfPath,
-  pdfName = "assetflow-report.html",
+  pdfName = "assetflow-report.pdf",
   onDelete,
 }: {
   view?: string;
@@ -829,4 +827,6 @@ export {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  BackendFilters,
 };

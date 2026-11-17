@@ -1,4 +1,7 @@
+import { addListQuery } from "../utils/list-query";
+import { Op } from "sequelize";
 import { Router } from "express";
+import { pdfMoney, sendPdfReport } from "../utils/pdf-report";
 import { z } from "zod";
 import { Asset, AssetAssignment, Company, Employee } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -19,16 +22,6 @@ const updateSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-function reportHtml(title: string, body: string) {
-  return `<!doctype html><html><head><title>${title}</title><style>
-  body{font-family:Arial,sans-serif;padding:32px;color:#0f172a;background:#fff}
-  .brand{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f766e;padding-bottom:14px;margin-bottom:22px}
-  h1{margin:0;color:#0f766e}.meta{color:#64748b;font-size:12px}.card{border:1px solid #cbd5e1;border-radius:14px;padding:18px;margin:16px 0}
-  table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #cbd5e1;padding:9px;font-size:12px;text-align:left}th{background:#f0fdfa}
-  @media print{button{display:none}}
- </style></head><body><div class="brand"><div><h1>AssetFlow</h1><div class="meta">Enterprise Asset Management</div></div><div class="meta">Generated ${new Date().toLocaleString()}</div></div><h2>${title}</h2>${body}<script>window.print()</script></body></html>`;
-}
-
 async function assignmentWithDetails(id: string) {
   return AssetAssignment.findByPk(id, {
     include: [
@@ -41,10 +34,18 @@ async function assignmentWithDetails(id: string) {
 assignmentRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
+    const where: any = {};
+    if (req.query.returnState === "open") where.returnedAt = null;
+    if (req.query.returnState === "returned") where.returnedAt = { [Op.not]: null };
+    addListQuery(where, req, { search: ["$Asset.assetCode$", "$Asset.name$", "$Employee.employeeCode$", "$Employee.name$"], exact: ["conditionAtAssign"], date: "assignedAt", dateOnly: false });
     const include: any[] = [{ model: Asset, include: [{ model: Company, as: "company" }] }, Employee];
-    if (req.query.companyId)
+    if (req.query.companyId) {
       include[0].where = { companyId: req.query.companyId };
+      include[0].required = true;
+    }
     const { rows, count } = await AssetAssignment.findAndCountAll({
+      where,
+      subQuery: false,
       include,
       distinct: true,
       order: [["createdAt", "DESC"]],
@@ -159,18 +160,20 @@ assignmentRoutes.delete("/:id", async (req, res, next) => {
 assignmentRoutes.get("/:id/pdf", async (req, res, next) => {
   try {
     const item: any = await assignmentWithDetails(req.params.id);
-    if (!item)
-      throw new ApiError(404, "Assignment not found");
+    if (!item) throw new ApiError(404, "Assignment not found");
     const asset = item.Asset || {};
     const employee = item.Employee || {};
-    const body = `<div class="card"><strong>Assignment ID:</strong> ${item.id}<br/><strong>Company:</strong> ${asset.company?.name || "-"}<br/><strong>Assigned At:</strong> ${item.assignedAt ? new Date(item.assignedAt).toLocaleString() : "-"}</div>
-   <table><tr><th>Asset Code</th><th>Asset</th><th>Serial</th><th>Employee</th><th>Condition</th><th>Notes</th></tr>
-   <tr><td>${asset.assetCode || ""}</td><td>${asset.name || ""}</td><td>${asset.serialNumber || ""}</td><td>${employee.employeeCode || ""} - ${employee.name || ""}</td><td>${item.conditionAtAssign || ""}</td><td>${item.notes || ""}</td></tr></table>`;
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Content-Disposition", `inline; filename=assignment-${item.id}.html`);
-    res.send(reportHtml("Asset Handover / Assignment Report", body));
-  }
-  catch (e) {
-    next(e);
-  }
+    sendPdfReport(res, {
+      title: "Asset Handover Certificate", filename: `assignment-${item.id}.pdf`,
+      subtitle: "Asset custody / employee handover record",
+      details: [
+        ["Assignment Reference", item.id], ["Company", asset.company?.name],
+        ["Assigned At", item.assignedAt], ["Returned At", item.returnedAt],
+        ["Employee", `${employee.employeeCode || ""} - ${employee.name || ""}`], ["Condition At Handover", item.conditionAtAssign],
+        ["Asset Code", asset.assetCode], ["Asset Name", asset.name],
+        ["Serial Number", asset.serialNumber], ["Notes", item.notes],
+      ],
+      sections: [],
+    });
+  } catch (error) { next(error); }
 });

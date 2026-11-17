@@ -1,5 +1,5 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
-import { Op } from "sequelize";
 import { z } from "zod";
 import { Company } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -13,11 +13,9 @@ const schema = z.object({ name: z.string().min(2), code: z.string().min(2), cont
 companyRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const search = String(req.query.search || "").trim();
     const where: any = {};
-    if (search)
-      where[Op.or] = [{ name: { [Op.iLike]: `%${search}%` } }, { code: { [Op.iLike]: `%${search}%` } }, { email: { [Op.iLike]: `%${search}%` } }];
-    const { rows, count } = await Company.findAndCountAll({ where, order: [[String(req.query.sortBy || "createdAt"), String(req.query.sortOrder || "DESC")]], limit, offset });
+    addListQuery(where, req, { search: ["name", "code", "email", "contactPerson"], exact: ["status"], date: "createdAt", dateOnly: false });
+    const { rows, count } = await Company.findAndCountAll({ where, order: [[(String(req.query.sortBy || "createdAt").match(/^(createdAt|name|purchaseDate|assetCode|invoiceNumber)$/) ? String(req.query.sortBy || "createdAt") : "createdAt"), (String(req.query.sortOrder || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC")]], limit, offset });
     ok(res, "Companies fetched successfully", rows, getPagingMeta(count, page, limit));
   }
   catch (e) {

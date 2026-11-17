@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 function VendorFormPage({ id }: { id?: string }) {
@@ -230,11 +232,12 @@ export function VendorsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Created date" filterChoices={[{ key: "status", label: "statuses", options: ["Active", "Inactive"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/vendors/create"
-            onCsv={() => toast.info("Vendor CSV export coming next")}
-            onPdf={() => downloadFile("/exports/vendors.pdf", "assetflow-vendors-report.html")}
+            onCsv={() => downloadFile(withListFilters("/exports/vendors.csv", list.filters, list.search), "assetflow-vendors.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/vendors.pdf", list.filters, list.search), "assetflow-vendors-report.pdf")}
           >
             <CompanyFilter
               value={list.filters.companyId}
@@ -255,13 +258,14 @@ export function VendorsPage() {
               <TableHead>Contact</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead>Status</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={6} />
+              <LoadingRows colSpan={7} />
             ) : list.items.length ? (
               list.items.map((v) => (
                 <TableRow key={v.id}>
@@ -272,6 +276,7 @@ export function VendorsPage() {
                   <TableCell>{v.contactPerson || "-"}</TableCell>
                   <TableCell>{v.phone || "-"}</TableCell>
                   <TableCell>{v.email || "-"}</TableCell>
+                  <TableCell>{v.createdAt ? String(v.createdAt).slice(0, 10) : "-"}</TableCell>
                   <TableCell>
                     <StatusBadge status={v.status} />
                   </TableCell>
@@ -284,7 +289,7 @@ export function VendorsPage() {
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={6} />
+              <EmptyRows colSpan={7} />
             )}
           </TableBody>
         </Table>

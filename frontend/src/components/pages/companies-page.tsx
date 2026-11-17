@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 export function CompaniesPage() {
@@ -133,15 +135,12 @@ export function CompaniesPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Created date" filterChoices={[{ key: "status", label: "statuses", options: ["Active", "Inactive"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/companies/create"
-            onCsv={() =>
-              toast.info("Company CSV export will follow same export pattern.")
-            }
-            onPdf={() =>
-              toast.info("Company PDF export will follow same export pattern.")
-            }
+            onCsv={() => downloadFile(withListFilters("/exports/companies.csv", list.filters, list.search), "assetflow-companies.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/companies.pdf", list.filters, list.search), "assetflow-companies.pdf")}
           />
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
@@ -153,6 +152,7 @@ export function CompaniesPage() {
               <TableHead>Code</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead>Status</TableHead>
               <TableHead />
             </TableRow>
@@ -167,6 +167,7 @@ export function CompaniesPage() {
                   <TableCell>{c.code}</TableCell>
                   <TableCell>{c.contactPerson || "-"}</TableCell>
                   <TableCell>{c.email || "-"}</TableCell>
+                  <TableCell>{c.createdAt ? String(c.createdAt).slice(0, 10) : "-"}</TableCell>
                   <TableCell>
                     <StatusBadge status={c.status} />
                   </TableCell>

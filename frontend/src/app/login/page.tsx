@@ -1,2 +1,2 @@
-import { LoginPage } from "@/components/pages/app-pages";
+import { LoginPage } from "@/components/pages/login-page";
 export default LoginPage;

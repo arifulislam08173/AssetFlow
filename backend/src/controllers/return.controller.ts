@@ -1,4 +1,6 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
+import { pdfMoney, sendPdfReport } from "../utils/pdf-report";
 import { z } from "zod";
 import { Asset, AssetAssignment, AssetReturn, Company, Employee } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -26,12 +28,6 @@ const updateSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-function reportHtml(title: string, body: string) {
-  return `<!doctype html><html><head><title>${title}</title><style>
-  body{font-family:Arial,sans-serif;padding:32px;color:#0f172a;background:#fff}.brand{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f766e;padding-bottom:14px;margin-bottom:22px}h1{margin:0;color:#0f766e}.meta{color:#64748b;font-size:12px}.card{border:1px solid #cbd5e1;border-radius:14px;padding:18px;margin:16px 0}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #cbd5e1;padding:9px;font-size:12px;text-align:left}th{background:#f0fdfa}@media print{button{display:none}}
- </style></head><body><div class="brand"><div><h1>AssetFlow</h1><div class="meta">Enterprise Asset Management</div></div><div class="meta">Generated ${new Date().toLocaleString()}</div></div><h2>${title}</h2>${body}<script>window.print()</script></body></html>`;
-}
-
 async function returnWithDetails(id: string) {
   return AssetReturn.findByPk(id, {
     include: [
@@ -45,10 +41,16 @@ async function returnWithDetails(id: string) {
 returnRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
+    const where: any = {};
+    addListQuery(where, req, { search: ["$Asset.assetCode$", "$Asset.name$", "$Employee.employeeCode$", "$Employee.name$"], exact: ["returnStatus", "returnCondition"], date: "createdAt", dateOnly: false });
     const include: any[] = [{ model: Asset, include: [{ model: Company, as: "company" }] }, Employee];
-    if (req.query.companyId)
+    if (req.query.companyId) {
       include[0].where = { companyId: req.query.companyId };
+      include[0].required = true;
+    }
     const { rows, count } = await AssetReturn.findAndCountAll({
+      where,
+      subQuery: false,
       include,
       distinct: true,
       order: [["createdAt", "DESC"]],
@@ -188,18 +190,20 @@ returnRoutes.delete("/:id", async (req, res, next) => {
 returnRoutes.get("/:id/pdf", async (req, res, next) => {
   try {
     const item: any = await returnWithDetails(req.params.id);
-    if (!item)
-      throw new ApiError(404, "Return record not found");
+    if (!item) throw new ApiError(404, "Return record not found");
     const asset = item.Asset || {};
     const employee = item.Employee || {};
-    const body = `<div class="card"><strong>Return ID:</strong> ${item.id}<br/><strong>Company:</strong> ${asset.company?.name || "-"}<br/><strong>Status:</strong> ${item.returnStatus}<br/><strong>Penalty:</strong> ${item.penaltyAmount || 0}</div>
-   <table><tr><th>Asset Code</th><th>Asset</th><th>Serial</th><th>Employee</th><th>Return Condition</th><th>Notes</th></tr>
-   <tr><td>${asset.assetCode || ""}</td><td>${asset.name || ""}</td><td>${asset.serialNumber || ""}</td><td>${employee.employeeCode || ""} - ${employee.name || ""}</td><td>${item.returnCondition || ""}</td><td>${item.notes || ""}</td></tr></table>`;
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Content-Disposition", `inline; filename=return-${item.id}.html`);
-    res.send(reportHtml("Asset Return / Clearance Report", body));
-  }
-  catch (e) {
-    next(e);
-  }
+    sendPdfReport(res, {
+      title: "Asset Return & Clearance Certificate", filename: `return-${item.id}.pdf`,
+      subtitle: "Return condition, custody and clearance record",
+      details: [
+        ["Return Reference", item.id], ["Company", asset.company?.name],
+        ["Asset Code", asset.assetCode], ["Asset Name", asset.name],
+        ["Serial Number", asset.serialNumber], ["Employee", `${employee.employeeCode || ""} - ${employee.name || ""}`],
+        ["Return Status", item.returnStatus], ["Return Condition", item.returnCondition],
+        ["Penalty", pdfMoney(item.penaltyAmount)], ["Notes", item.notes],
+      ],
+      sections: [],
+    });
+  } catch (error) { next(error); }
 });

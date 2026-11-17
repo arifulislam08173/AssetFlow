@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 function EmployeeCompanySelector({
@@ -307,11 +309,12 @@ export function EmployeesPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Joining date" filterChoices={[{ key: "status", label: "statuses", options: ["Active", "Inactive", "Resigned", "Terminated"].map((v) => ({ value: v, label: v })) }, { key: "departmentId", label: "departments", options: options.departments.map((d: AnyObj) => ({ value: d.id, label: d.name })) }, { key: "clearanceStatus", label: "clearances", options: ["Clear", "Pending", "Not Clear"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/employees/create"
-            onCsv={() => toast.info("Employee CSV export coming next")}
-            onPdf={() => downloadFile("/exports/employees.pdf", "assetflow-employees-report.html")}
+            onCsv={() => downloadFile(withListFilters("/exports/employees.csv", list.filters, list.search), "assetflow-employees.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/employees.pdf", list.filters, list.search), "assetflow-employees-report.pdf")}
           >
             <CompanyFilter
               value={list.filters.companyId}
@@ -331,6 +334,7 @@ export function EmployeesPage() {
               <TableHead>Companies</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Designation</TableHead>
+              <TableHead>Joining Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Clearance</TableHead>
               <TableHead />
@@ -338,7 +342,7 @@ export function EmployeesPage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={7} />
+              <LoadingRows colSpan={8} />
             ) : list.items.length ? (
               list.items.map((e) => (
                 <TableRow key={e.id}>
@@ -355,6 +359,7 @@ export function EmployeesPage() {
                   </TableCell>
                   <TableCell>{e.email}</TableCell>
                   <TableCell>{e.designation}</TableCell>
+                  <TableCell>{e.joiningDate ? String(e.joiningDate).slice(0, 10) : "-"}</TableCell>
                   <TableCell>
                     <StatusBadge status={e.status} />
                   </TableCell>
@@ -371,7 +376,7 @@ export function EmployeesPage() {
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={7} />
+              <EmptyRows colSpan={8} />
             )}
           </TableBody>
         </Table>

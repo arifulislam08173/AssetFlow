@@ -1,5 +1,5 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
-import { Op } from "sequelize";
 import { z } from "zod";
 import { Company, Vendor } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -12,13 +12,9 @@ const schema = z.object({ companyId: z.string().uuid().optional().nullable(), na
 
 vendorRoutes.get("/", async (req, res, next) => { try {
   const { page, limit, offset } = getPagination(req);
-  const search = String(req.query.search || "").trim();
   const where: any = {};
-  if (search)
-    where[Op.or] = [{ name: { [Op.iLike]: `%${search}%` } }, { contactPerson: { [Op.iLike]: `%${search}%` } }, { phone: { [Op.iLike]: `%${search}%` } }, { email: { [Op.iLike]: `%${search}%` } }];
-  if (req.query.companyId)
-    where.companyId = req.query.companyId;
-  const { rows, count } = await Vendor.findAndCountAll({ where, include: [{ model: Company, as: "company" }], order: [[String(req.query.sortBy || "createdAt"), String(req.query.sortOrder || "DESC")]], limit, offset });
+    addListQuery(where, req, { search: ["name", "contactPerson", "phone", "email"], exact: ["companyId", "status"], date: "createdAt", dateOnly: false });
+  const { rows, count } = await Vendor.findAndCountAll({ where, include: [{ model: Company, as: "company" }], order: [[(String(req.query.sortBy || "createdAt").match(/^(createdAt|name|purchaseDate|assetCode|invoiceNumber)$/) ? String(req.query.sortBy || "createdAt") : "createdAt"), (String(req.query.sortOrder || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC")]], limit, offset });
   ok(res, "Vendors fetched successfully", rows, getPagingMeta(count, page, limit));
 }
 catch (e) {

@@ -1,2 +1,2 @@
-import { CompanyEditPage } from "@/components/pages/app-pages";
+import { CompanyEditPage } from "@/components/pages/companies-page";
 export default CompanyEditPage;

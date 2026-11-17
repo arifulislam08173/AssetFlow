@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 export function AssetsPage() {
@@ -144,17 +146,17 @@ export function AssetsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Purchase date" filterChoices={[{ key: "categoryId", label: "categories", options: options.categories.map((c: AnyObj) => ({ value: c.id, label: c.name })) }, { key: "condition", label: "conditions", options: ["New", "Excellent", "Good", "Fair", "Poor", "Damaged", "Unusable"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/assets/create"
             onTemplateDownload={downloadAssetTemplateCsv}
             onCsv={() =>
-              downloadFile("/exports/assets.csv", "assetflow-assets.csv")
+              downloadFile(withListFilters("/exports/assets.csv", list.filters, list.search), "assetflow-assets.csv")
             }
             onPdf={() =>
-              downloadFile(
-                "/exports/assets.pdf",
-                "assetflow-assets-report.html",
+              downloadFile(withListFilters("/exports/assets.pdf", list.filters, list.search),
+                "assetflow-assets-report.pdf",
               )
             }
           >
@@ -186,6 +188,7 @@ export function AssetsPage() {
                   "Damaged",
                   "Lost",
                   "Disposed",
+                  "Reserved",
                 ].map((x) => (
                   <SelectItem key={x} value={x}>
                     {x}
@@ -204,6 +207,7 @@ export function AssetsPage() {
               <TableHead>Asset</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Serial</TableHead>
+              <TableHead>Purchase Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Value</TableHead>
@@ -212,7 +216,7 @@ export function AssetsPage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={8} />
+              <LoadingRows colSpan={9} />
             ) : list.items.length ? (
               list.items.map((a) => (
                 <TableRow key={a.id}>
@@ -227,6 +231,7 @@ export function AssetsPage() {
                   </TableCell>
                   <TableCell>{a.category?.name || "-"}</TableCell>
                   <TableCell>{a.serialNumber}</TableCell>
+                  <TableCell>{a.purchaseDate ? String(a.purchaseDate).slice(0, 10) : "-"}</TableCell>
                   <TableCell>
                     <StatusBadge status={a.status} />
                   </TableCell>
@@ -248,7 +253,7 @@ export function AssetsPage() {
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={8} />
+              <EmptyRows colSpan={9} />
             )}
           </TableBody>
         </Table>
@@ -771,7 +776,7 @@ export function AssetDetailPage({ id }: { id: string }) {
             <Button
               className="mt-4 w-full"
               variant="outline"
-              onClick={() => window.print()}
+              onClick={() => { const url = `/assets/${encodeURIComponent(id)}/qr`; const tab = window.open(url, "_blank"); if (tab) tab.opener = null; else window.location.assign(url); }}
             >
               Print QR
             </Button>

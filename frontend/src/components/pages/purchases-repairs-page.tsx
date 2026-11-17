@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 
@@ -125,7 +127,7 @@ export function RepairDetailPage() {
         actions={
           <>
             <BackButton fallback="/repairs" />
-            <Button variant="outline" onClick={() => downloadFile(`/repairs/${id}/pdf`, `repair-${id}.html`)}>PDF</Button>
+            <Button variant="outline" onClick={() => downloadFile(`/repairs/${id}/pdf`, `repair-${id}.pdf`)}>PDF</Button>
             <Button asChild><Link href={`/repairs/${id}/edit`}>Edit</Link></Button>
           </>
         }
@@ -185,6 +187,7 @@ export function RepairEditPage() {
 
 export function PurchasesPage() {
   useAuthGuard();
+  const { options } = useOptions();
   const list = useApiList(assetflowService.purchases);
 
   const remove = async (id: string) => {
@@ -213,12 +216,15 @@ export function PurchasesPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Purchase date" filterChoices={[{ key: "paymentStatus", label: "payment statuses", options: ["Paid", "Pending", "Partial"].map((v) => ({ value: v, label: v })) }, { key: "vendorId", label: "vendors", options: options.vendors.map((v: AnyObj) => ({ value: v.id, label: v.name })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/purchases/create"
-            onCsv={() => toast.info("Purchase CSV export coming next")}
-            onPdf={() => downloadFile("/exports/purchases.pdf", "assetflow-purchases-report.html")}
-          />
+            onCsv={() => downloadFile(withListFilters("/exports/purchases.csv", list.filters, list.search), "assetflow-purchases.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/purchases.pdf", list.filters, list.search), "assetflow-purchases-report.pdf")}
+          >
+            <CompanyFilter value={list.filters.companyId} onChange={(companyId) => list.setFilters((f: AnyObj) => ({ ...f, companyId }))} companies={options.companies} />
+          </Toolbar>
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
       >
@@ -251,7 +257,7 @@ export function PurchasesPage() {
                       view={`/purchases/${p.id}`}
                       edit={`/purchases/${p.id}/edit`}
                       pdfPath={`/purchases/${p.id}/pdf`}
-                      pdfName={`purchase-${p.invoiceNumber || p.id}.html`}
+                      pdfName={`purchase-${p.invoiceNumber || p.id}.pdf`}
                       onDelete={() => remove(p.id)}
                     />
                   </TableCell>
@@ -364,7 +370,7 @@ export function PurchaseDetailPage() {
         actions={
           <>
             <BackButton fallback="/purchases" />
-            <Button variant="outline" onClick={() => downloadFile(`/purchases/${id}/pdf`, `purchase-${item.invoiceNumber}.html`)}>
+            <Button variant="outline" onClick={() => downloadFile(`/purchases/${id}/pdf`, `purchase-${item.invoiceNumber}.pdf`)}>
               <FileBarChart className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
@@ -393,6 +399,7 @@ export function PurchaseDetailPage() {
 
 export function RepairsPage() {
   useAuthGuard();
+  const { options } = useOptions();
   const list = useApiList(assetflowService.repairs);
 
   const remove = async (id: string) => {
@@ -421,12 +428,15 @@ export function RepairsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Reported date" filterChoices={[{ key: "status", label: "statuses", options: ["Open", "Diagnosed", "Sent to Vendor", "Under Repair", "Waiting for Parts", "Completed", "Returned", "Cancelled"].map((v) => ({ value: v, label: v })) }, { key: "repairVendorId", label: "repair vendors", options: options.vendors.map((v: AnyObj) => ({ value: v.id, label: v.name })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/repairs/create"
-            onCsv={() => toast.info("Repair CSV export coming next")}
-            onPdf={() => downloadFile("/exports/repairs.pdf", "assetflow-repairs-report.html")}
-          />
+            onCsv={() => downloadFile(withListFilters("/exports/repairs.csv", list.filters, list.search), "assetflow-repairs.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/repairs.pdf", list.filters, list.search), "assetflow-repairs-report.pdf")}
+          >
+            <CompanyFilter value={list.filters.companyId} onChange={(companyId) => list.setFilters((f: AnyObj) => ({ ...f, companyId }))} companies={options.companies} />
+          </Toolbar>
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
       >
@@ -436,6 +446,7 @@ export function RepairsPage() {
               <TableHead>Ticket</TableHead>
               <TableHead>Asset</TableHead>
               <TableHead>Problem / Upgrade</TableHead>
+              <TableHead>Reported</TableHead>
               <TableHead>Cost</TableHead>
               <TableHead>Status</TableHead>
               <TableHead />
@@ -443,13 +454,14 @@ export function RepairsPage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={6} />
+              <LoadingRows colSpan={7} />
             ) : list.items.length ? (
               list.items.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.ticketCode}</TableCell>
                   <TableCell>{r.Asset ? `${r.Asset.assetCode} - ${r.Asset.name}` : r.assetId}</TableCell>
                   <TableCell>{r.problem}</TableCell>
+                  <TableCell>{r.reportedAt ? String(r.reportedAt).slice(0, 10) : "-"}</TableCell>
                   <TableCell>{money.format(Number(r.repairCost || 0))}</TableCell>
                   <TableCell><StatusBadge status={r.status} /></TableCell>
                   <TableCell className="text-right">
@@ -457,14 +469,14 @@ export function RepairsPage() {
                       view={`/repairs/${r.id}`}
                       edit={`/repairs/${r.id}/edit`}
                       pdfPath={`/repairs/${r.id}/pdf`}
-                      pdfName={`repair-${r.id}.html`}
+                      pdfName={`repair-${r.id}.pdf`}
                       onDelete={() => remove(r.id)}
                     />
                   </TableCell>
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={6} />
+              <EmptyRows colSpan={7} />
             )}
           </TableBody>
         </Table>

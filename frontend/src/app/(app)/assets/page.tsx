@@ -1,2 +1,2 @@
-import { AssetsPage } from "@/components/pages/app-pages";
+import { AssetsPage } from "@/components/pages/assets-page";
 export default AssetsPage;

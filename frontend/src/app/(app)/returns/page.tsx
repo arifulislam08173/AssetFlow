@@ -1,2 +1,2 @@
-import { ReturnsPage } from "@/components/pages/app-pages";
+import { ReturnsPage } from "@/components/pages/assignments-returns-page";
 export default ReturnsPage;

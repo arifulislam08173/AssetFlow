@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 function PermissionPicker({
@@ -241,13 +243,15 @@ export function UsersPage() {
           <DataTableShell
             toolbar={
               <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Created date" filterChoices={[{ key: "status", label: "statuses", options: ["Active", "Inactive"].map((v) => ({ value: v, label: v })) }]}
                 search={list.search}
                 setSearch={list.setSearch}
                 createHref="/users/create"
-                onCsv={() => toast.info("User CSV export coming next")}
-                onPdf={() => toast.info("User PDF export coming next")}
+                onCsv={() => downloadFile(withListFilters("/exports/users.csv", list.filters, list.search), "assetflow-users.csv")}
+                onPdf={() => downloadFile(withListFilters("/exports/users.pdf", list.filters, list.search), "assetflow-users.pdf")}
               />
             }
+            footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
           >
             <Table>
               <TableHeader>
@@ -255,6 +259,7 @@ export function UsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Extra Permissions</TableHead>
                   <TableHead />
@@ -262,13 +267,14 @@ export function UsersPage() {
               </TableHeader>
               <TableBody>
                 {list.loading ? (
-                  <LoadingRows colSpan={6} />
+                  <LoadingRows colSpan={7} />
                 ) : (
                   list.items.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell>{u.name}</TableCell>
                       <TableCell>{u.email}</TableCell>
                       <TableCell>{u.Role?.name || "-"}</TableCell>
+                      <TableCell>{u.createdAt ? String(u.createdAt).slice(0, 10) : "-"}</TableCell>
                       <TableCell>
                         <StatusBadge status={u.status} />
                       </TableCell>

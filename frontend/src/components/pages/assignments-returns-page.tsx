@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 
@@ -129,11 +131,12 @@ export function AssignmentsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Assigned date" filterChoices={[{ key: "returnState", label: "custody", options: [{ value: "open", label: "Currently assigned" }, { value: "returned", label: "Returned" }] }, { key: "conditionAtAssign", label: "handover conditions", options: ["New", "Excellent", "Good", "Fair", "Poor", "Damaged"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/assignments/create"
-            onCsv={() => toast.info("Assignment export coming next")}
-            onPdf={() => downloadFile("/exports/assignments.pdf", "assetflow-assignments-report.html")}
+            onCsv={() => downloadFile(withListFilters("/exports/assignments.csv", list.filters, list.search), "assetflow-assignments.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/assignments.pdf", list.filters, list.search), "assetflow-assignments-report.pdf")}
           >
             <CompanyFilter
               value={list.filters.companyId}
@@ -160,7 +163,7 @@ export function AssignmentsPage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={6} />
+              <LoadingRows colSpan={7} />
             ) : list.items.length ? (
               list.items.map((x) => (
                 <TableRow key={x.id}>
@@ -198,7 +201,7 @@ export function AssignmentsPage() {
                             <Pencil className="mr-2 h-4 w-4" />Edit
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => downloadFile(`/assignments/${x.id}/pdf`, `assignment-${x.id}.html`)}>
+                        <DropdownMenuItem onClick={() => downloadFile(`/assignments/${x.id}/pdf`, `assignment-${x.id}.pdf`)}>
                           <FileBarChart className="mr-2 h-4 w-4" />PDF
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={async () => {
@@ -360,11 +363,12 @@ export function ReturnsPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Return date" filterChoices={[{ key: "returnStatus", label: "status", options: ["Returned", "Lost"].map((v) => ({ value: v, label: v })) }, { key: "returnCondition", label: "condition", options: ["Good", "Fair", "Damaged", "Unusable"].map((v) => ({ value: v, label: v })) }]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/returns/create"
-            onCsv={() => toast.info("Return export coming next")}
-            onPdf={() => downloadFile("/exports/returns.pdf", "assetflow-returns-report.html")}
+            onCsv={() => downloadFile(withListFilters("/exports/returns.csv", list.filters, list.search), "assetflow-returns.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/returns.pdf", list.filters, list.search), "assetflow-returns-report.pdf")}
           >
             <CompanyFilter
               value={list.filters.companyId}
@@ -383,6 +387,7 @@ export function ReturnsPage() {
               <TableHead>Company</TableHead>
               <TableHead>Asset</TableHead>
               <TableHead>Employee</TableHead>
+              <TableHead>Return Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Condition</TableHead>
               <TableHead>Penalty</TableHead>
@@ -391,7 +396,7 @@ export function ReturnsPage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={6} />
+              <LoadingRows colSpan={8} />
             ) : list.items.length ? (
               list.items.map((x) => (
                 <TableRow key={x.id}>
@@ -404,6 +409,7 @@ export function ReturnsPage() {
                       ? `${x.Employee.employeeCode || ""} - ${x.Employee.name}`
                       : x.employeeId}
                   </TableCell>
+                  <TableCell>{x.createdAt ? String(x.createdAt).slice(0, 10) : "-"}</TableCell>
                   <TableCell>
                     <StatusBadge status={x.returnStatus} />
                   </TableCell>
@@ -429,7 +435,7 @@ export function ReturnsPage() {
                             <Pencil className="mr-2 h-4 w-4" />Edit
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => downloadFile(`/returns/${x.id}/pdf`, `return-${x.id}.html`)}>
+                        <DropdownMenuItem onClick={() => downloadFile(`/returns/${x.id}/pdf`, `return-${x.id}.pdf`)}>
                           <FileBarChart className="mr-2 h-4 w-4" />PDF
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={async () => {
@@ -446,7 +452,7 @@ export function ReturnsPage() {
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={6} />
+              <EmptyRows colSpan={8} />
             )}
           </TableBody>
         </Table>
@@ -665,7 +671,7 @@ export function AssignmentDetailPage() {
         actions={
           <>
             <BackButton fallback="/assignments" />
-            <Button variant="outline" onClick={() => downloadFile(`/assignments/${id}/pdf`, `assignment-${id}.html`)}>PDF</Button>
+            <Button variant="outline" onClick={() => downloadFile(`/assignments/${id}/pdf`, `assignment-${id}.pdf`)}>PDF</Button>
             <Button asChild><Link href={`/assignments/${id}/edit`}>Edit</Link></Button>
           </>
         }
@@ -732,7 +738,7 @@ export function ReturnDetailPage() {
         actions={
           <>
             <BackButton fallback="/returns" />
-            <Button variant="outline" onClick={() => downloadFile(`/returns/${id}/pdf`, `return-${id}.html`)}>PDF</Button>
+            <Button variant="outline" onClick={() => downloadFile(`/returns/${id}/pdf`, `return-${id}.pdf`)}>PDF</Button>
             <Button asChild><Link href={`/returns/${id}/edit`}>Edit</Link></Button>
           </>
         }

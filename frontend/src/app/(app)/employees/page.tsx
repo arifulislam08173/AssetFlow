@@ -1,2 +1,2 @@
-import { EmployeesPage } from "@/components/pages/app-pages";
+import { EmployeesPage } from "@/components/pages/employees-page";
 export default EmployeesPage;

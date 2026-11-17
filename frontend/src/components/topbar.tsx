@@ -48,11 +48,6 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="hidden items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary lg:flex">
-          <Sparkles className="h-3.5 w-3.5" />
-          Premium workspace
-        </div>
-
         <Button variant="ghost" size="icon" className="hidden rounded-2xl sm:inline-flex">
           <HelpCircle className="h-4 w-4" />
         </Button>

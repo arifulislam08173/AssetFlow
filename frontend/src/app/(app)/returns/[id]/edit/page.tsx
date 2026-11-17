@@ -1,2 +1,2 @@
-import { ReturnEditPage } from "@/components/pages/app-pages";
+import { ReturnEditPage } from "@/components/pages/assignments-returns-page";
 export default ReturnEditPage;

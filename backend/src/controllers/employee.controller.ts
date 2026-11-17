@@ -1,5 +1,5 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
-import { Op } from "sequelize";
 import { z } from "zod";
 import { Asset, Company, Department, Employee, EmployeeCompany, Location } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -13,14 +13,8 @@ const schema = z.object({ companyIds: z.array(z.string().uuid()).optional(), emp
 employeeRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const search = String(req.query.search || "").trim();
     const where: any = {};
-    if (search)
-      where[Op.or] = [{ employeeCode: { [Op.iLike]: `%${search}%` } }, { name: { [Op.iLike]: `%${search}%` } }, { email: { [Op.iLike]: `%${search}%` } }];
-    if (req.query.status)
-      where.status = req.query.status;
-    if (req.query.departmentId)
-      where.departmentId = req.query.departmentId;
+    addListQuery(where, req, { search: ["employeeCode", "name", "email"], exact: ["status", "departmentId", "clearanceStatus"], date: "joiningDate", dateOnly: true });
     const include: any[] = [Department, Location, { model: Company, as: "companies", through: { attributes: [] } }];
     if (req.query.companyId)
       include[2].where = { id: req.query.companyId };

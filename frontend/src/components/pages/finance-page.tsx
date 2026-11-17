@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 function SimpleList({
@@ -137,11 +139,12 @@ function SimpleList({
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Purchase date" filterChoices={[]}
             search={list.search}
             setSearch={list.setSearch}
             createHref={createHref}
-            onCsv={() => toast.info("CSV export coming next")}
-            onPdf={() => downloadFile("/exports/repairs.pdf", "assetflow-repairs-report.html")}
+            onCsv={() => downloadFile(withListFilters("/exports/finance.csv", list.filters, list.search), "assetflow-finance.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/finance.pdf", list.filters, list.search), "assetflow-finance-report.pdf")}
           />
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
@@ -179,14 +182,8 @@ export function FinancePage() {
   useAuthGuard();
   const { options } = useOptions();
   const list = useApiList(assetflowService.reportDepreciation);
-  const purchase = list.items.reduce(
-    (s, a) => s + Number(a.purchasePrice || 0),
-    0,
-  );
-  const current = list.items.reduce(
-    (s, a) => s + Number(a.currentValue || 0),
-    0,
-  );
+  const purchase = Number(list.meta.purchaseValue ?? list.items.reduce((s, a) => s + Number(a.purchasePrice || 0), 0));
+  const current = Number(list.meta.currentValue ?? list.items.reduce((s, a) => s + Number(a.currentValue || 0), 0));
   return (
     <div className="space-y-6">
       <PageHeader
@@ -215,18 +212,17 @@ export function FinancePage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Purchase date" filterChoices={[{ key: "status", label: "statuses", options: ["Available", "Assigned", "In Repair", "Disposed"].map((v) => ({ value: v, label: v })) }, { key: "categoryId", label: "categories", options: options.categories.map((v: AnyObj) => ({ value: v.id, label: v.name })) }]}
             search={list.search}
             setSearch={list.setSearch}
             onCsv={() =>
-              downloadFile(
-                "/exports/assets.csv",
+              downloadFile(withListFilters("/exports/finance.csv", list.filters, list.search),
                 "assetflow-finance-assets.csv",
               )
             }
             onPdf={() =>
-              downloadFile(
-                "/exports/finance.pdf",
-                "assetflow-finance-report.html",
+              downloadFile(withListFilters("/exports/finance.pdf", list.filters, list.search),
+                "assetflow-finance-report.pdf",
               )
             }
           >
@@ -239,6 +235,7 @@ export function FinancePage() {
             />
           </Toolbar>
         }
+        footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
       >
         <Table>
           <TableHeader>
@@ -246,6 +243,7 @@ export function FinancePage() {
               <TableHead>Company</TableHead>
               <TableHead>Asset</TableHead>
               <TableHead>Assigned To</TableHead>
+              <TableHead>Purchase Date</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Useful Life</TableHead>
               <TableHead>Purchase</TableHead>
@@ -255,7 +253,7 @@ export function FinancePage() {
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={8} />
+              <LoadingRows colSpan={9} />
             ) : (
               list.items.map((a) => (
                 <TableRow key={a.id || a.assetCode}>
@@ -273,6 +271,7 @@ export function FinancePage() {
                       ? `${a.assignedEmployee.employeeCode || ""} - ${a.assignedEmployee.name}`
                       : "-"}
                   </TableCell>
+                  <TableCell>{a.purchaseDate ? String(a.purchaseDate).slice(0, 10) : "-"}</TableCell>
                   <TableCell>{a.depreciationMethod}</TableCell>
                   <TableCell>{a.usefulLifeYears} years</TableCell>
                   <TableCell>
@@ -332,7 +331,7 @@ export function FinanceAssetHistoryPage() {
               onClick={() =>
                 downloadFile(
                   `/reports/assets/${id}/history/pdf`,
-                  `assetflow-finance-history-${asset.assetCode || id}.html`,
+                  `assetflow-finance-history-${asset.assetCode || id}.pdf`,
                 )
               }
             >

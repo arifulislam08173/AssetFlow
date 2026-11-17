@@ -1,2 +1,2 @@
-import { DashboardPage } from "@/components/pages/app-pages";
+import { DashboardPage } from "@/components/pages/dashboard-page";
 export default DashboardPage;

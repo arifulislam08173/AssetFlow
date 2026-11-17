@@ -1,2 +1,2 @@
-import { AssignmentDetailPage } from "@/components/pages/app-pages";
+import { AssignmentDetailPage } from "@/components/pages/assignments-returns-page";
 export default AssignmentDetailPage;

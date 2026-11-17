@@ -1,5 +1,5 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
-import { Op } from "sequelize";
 import { z } from "zod";
 import { AssetCategory } from "../models";
 import { created, ok } from "../utils/api-response";
@@ -15,10 +15,8 @@ const schema = z.object({
 categoryRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const search = String(req.query.search || "").trim();
     const where: any = {};
-    if (search)
-      where.name = { [Op.iLike]: `%${search}%` };
+    addListQuery(where, req, { search: ["name"], exact: ["companyId"], date: "createdAt", dateOnly: false });
     const { rows, count } = await AssetCategory.findAndCountAll({
       where,
       order: [["name", "ASC"]],

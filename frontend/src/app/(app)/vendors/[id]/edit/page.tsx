@@ -1,2 +1,2 @@
-import { VendorEditPage } from "@/components/pages/app-pages";
+import { VendorEditPage } from "@/components/pages/vendors-page";
 export default VendorEditPage;

@@ -1,3 +1,4 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
 import { AuditLog, Role, User } from "../models";
 import { getPagination, getPagingMeta } from "../utils/pagination";
@@ -19,7 +20,9 @@ function changedFields(beforeSnapshot: unknown, afterSnapshot: unknown) {
 auditRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const { rows, count } = await AuditLog.findAndCountAll({ order: [["createdAt", "DESC"]], limit, offset });
+    const where: any = {};
+    addListQuery(where, req, { search: ["userName", "action", "module", "recordId", "ipAddress"], exact: ["action", "module", "userId"], date: "createdAt", dateOnly: false });
+    const { rows, count } = await AuditLog.findAndCountAll({ where, order: [["createdAt", "DESC"]], limit, offset });
     ok(res, "Audit logs fetched successfully", rows, getPagingMeta(count, page, limit));
   }
   catch (error) {

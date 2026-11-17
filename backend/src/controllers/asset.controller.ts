@@ -1,3 +1,4 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
 import { Op } from "sequelize";
 import QRCode from "qrcode";
@@ -169,17 +170,9 @@ function templateCsv() {
 assetRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const search = String(req.query.search || "").trim();
     const where: any = {};
-    if (search)
-      where[Op.or] = [{ assetCode: { [Op.iLike]: `%${search}%` } }, { name: { [Op.iLike]: `%${search}%` } }, { serialNumber: { [Op.iLike]: `%${search}%` } }, { brand: { [Op.iLike]: `%${search}%` } }, { model: { [Op.iLike]: `%${search}%` } }];
-    if (req.query.status)
-      where.status = req.query.status;
-    if (req.query.categoryId)
-      where.categoryId = req.query.categoryId;
-    if (req.query.companyId)
-      where.companyId = req.query.companyId;
-    const { rows, count } = await Asset.findAndCountAll({ where, include: [{ model: AssetCategory, as: "category" }, { model: Company, as: "company" }, { model: Vendor, as: "vendor" }, { model: Location, as: "location" }, { model: Employee, as: "assignedEmployee" }], order: [[String(req.query.sortBy || "createdAt"), String(req.query.sortOrder || "DESC")]], limit, offset });
+    addListQuery(where, req, { search: ["assetCode", "name", "serialNumber", "brand", "model"], exact: ["status", "categoryId", "companyId", "condition", "vendorId", "locationId"], date: "purchaseDate", dateOnly: true });
+    const { rows, count } = await Asset.findAndCountAll({ where, include: [{ model: AssetCategory, as: "category" }, { model: Company, as: "company" }, { model: Vendor, as: "vendor" }, { model: Location, as: "location" }, { model: Employee, as: "assignedEmployee" }], order: [[(String(req.query.sortBy || "createdAt").match(/^(createdAt|name|purchaseDate|assetCode|invoiceNumber)$/) ? String(req.query.sortBy || "createdAt") : "createdAt"), (String(req.query.sortOrder || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC")]], limit, offset });
     ok(res, "Assets fetched successfully", rows, getPagingMeta(count, page, limit));
   }
   catch (error) {

@@ -1,3 +1,4 @@
+import { addListQuery } from "../utils/list-query";
 import { Router } from "express";
 import { z } from "zod";
 import { Role, User, hashPassword } from "../models";
@@ -20,7 +21,9 @@ const updateSchema = createSchema.partial();
 userRoutes.get("/", async (req, res, next) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const { rows, count } = await User.findAndCountAll({
+    const where: any = {};
+    addListQuery(where, req, { search: ["name", "email"], exact: ["status", "roleId"], date: "createdAt", dateOnly: false });
+    const { rows, count } = await User.findAndCountAll({ where,
       include: [Role],
       order: [["createdAt", "DESC"]],
       limit,

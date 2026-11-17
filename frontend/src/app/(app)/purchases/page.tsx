@@ -1,2 +1,2 @@
-import { PurchasesPage } from "@/components/pages/app-pages";
+import { PurchasesPage } from "@/components/pages/purchases-repairs-page";
 export default PurchasesPage;

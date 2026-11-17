@@ -103,6 +103,8 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  downloadFile,
+  withListFilters,
 } from "./shared";
 
 export function CategoriesPage() {
@@ -134,12 +136,13 @@ export function CategoriesPage() {
       <DataTableShell
         toolbar={
           <Toolbar
+            filters={list.filters} setFilters={list.setFilters} dateLabel="Created date" filterChoices={[]}
             search={list.search}
             setSearch={list.setSearch}
             createHref="/categories/create"
             templateUrl={assetflowService.categoryTemplateUrl()}
-            onCsv={() => toast.info("Category CSV export will be connected next.")}
-            onPdf={() => toast.info("Category PDF export will be connected next.")}
+            onCsv={() => downloadFile(withListFilters("/exports/categories.csv", list.filters, list.search), "assetflow-categories.csv")}
+            onPdf={() => downloadFile(withListFilters("/exports/categories.pdf", list.filters, list.search), "assetflow-categories.pdf")}
           />
         }
         footer={<Footer meta={list.meta} setMeta={list.setMeta} />}
@@ -149,12 +152,13 @@ export function CategoriesPage() {
             <TableRow>
               <TableHead>Category Name</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.loading ? (
-              <LoadingRows colSpan={3} />
+              <LoadingRows colSpan={4} />
             ) : list.items.length ? (
               list.items.map((c) => (
                 <TableRow key={c.id}>
@@ -162,6 +166,7 @@ export function CategoriesPage() {
                   <TableCell className="text-muted-foreground">
                     Available for all company wings and sectors.
                   </TableCell>
+                  <TableCell>{c.createdAt ? String(c.createdAt).slice(0, 10) : "-"}</TableCell>
                   <TableCell className="text-right">
                     <RowActions
                       edit={`/categories/${c.id}/edit`}
@@ -171,7 +176,7 @@ export function CategoriesPage() {
                 </TableRow>
               ))
             ) : (
-              <EmptyRows colSpan={3} />
+              <EmptyRows colSpan={4} />
             )}
           </TableBody>
         </Table>

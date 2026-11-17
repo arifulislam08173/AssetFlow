@@ -1,2 +1,2 @@
-import { UsersPage } from "@/components/pages/app-pages";
+import { UsersPage } from "@/components/pages/users-page";
 export default UsersPage;

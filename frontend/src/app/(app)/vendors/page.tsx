@@ -1,2 +1,2 @@
-import { VendorsPage } from "@/components/pages/app-pages";
+import { VendorsPage } from "@/components/pages/vendors-page";
 export default VendorsPage;

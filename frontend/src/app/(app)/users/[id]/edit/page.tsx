@@ -1,2 +1,2 @@
-import { UserEditPage } from "@/components/pages/app-pages";
+import { UserEditPage } from "@/components/pages/users-page";
 export default UserEditPage;
